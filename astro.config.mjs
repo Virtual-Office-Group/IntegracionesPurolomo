@@ -17,12 +17,11 @@ export default defineConfig({
 					label: 'Integraciones',
 					items: [
 						
-						{ label: 'Integration Sigero', slug: 'guides/sigero' },
+						{ label: 'Integration Sigero', slug: '/guides/sigero' },
 					],
 				},
 			],
 		}),
 	],
-	site: 'https://Virtual-Office-Group.github.io',
-	base: '/IntegracionesPurolomo',
+	site: 'https://Virtual-Office-Group.github.io/IntegracionesPurolomo',
 });
