@@ -9,6 +9,7 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
+			
 			title: 'Integraciones Purolomo',
 			defaultLocale: 'es',
 			lastUpdated: true,
