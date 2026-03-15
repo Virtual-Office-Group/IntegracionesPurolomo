@@ -24,5 +24,6 @@ export default defineConfig({
 		}),
 	],
 	site: 'https://Virtual-Office-Group.github.io/IntegracionesPurolomo',
-	base: 'IntegracionesPurolomo'
+	base: 'IntegracionesPurolomo',
+	trailingSlash: 'always',
 });
