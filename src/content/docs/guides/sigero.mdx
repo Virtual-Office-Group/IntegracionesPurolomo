@@ -995,6 +995,9 @@ Authorization: Bearer {access_token}
     "phoneNumber": "",
     "email": "",
     "website": "",
+    "requirePicking": false,
+    "requireReceive": false,
+    "requireShipment": false,
     "lastModifiedDateTime": "2025-04-25T13:34:24.23Z"
 }
 ```
@@ -1018,6 +1021,10 @@ Authorization: Bearer {access_token}
 | phoneNumber | Text[30] | Número telefónico de contacto. |
 | email | Text[80] | Dirección de correo electrónico. |
 | website | Text[255] | Dirección URL del almacén. |
+| requirePicking | Boolean  | Si es requerido el picking en las transferencias |
+| requireReceive | Boolean  | Si es requerido la recepción en las transferencias |
+| requireShipment | Boolean | Si es requerido el envio del almacen en las transferencias |
+
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
 ### Maestro de Proveedores

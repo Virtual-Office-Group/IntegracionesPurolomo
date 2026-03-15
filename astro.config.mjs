@@ -25,7 +25,6 @@ export default defineConfig({
 	],
 	site: 'https://Virtual-Office-Group.github.io',
 	base: 'IntegracionesPurolomo',
-	trailingSlash: 'always',
 	redirects:{
 		'/':'guides/sigero'
 	}
