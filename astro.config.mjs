@@ -9,7 +9,7 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
-			
+
 			title: 'Integraciones Purolomo',
 			defaultLocale: 'es',
 			lastUpdated: true,
@@ -27,5 +27,5 @@ export default defineConfig({
 		}),
 	],
 	site: 'https://Virtual-Office-Group.github.io',
-	base: '',
+	base: 'IntegracionesPurolomo',
 });
