@@ -4,15 +4,15 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	redirects: {
+		"/": "/guides/sigero",
+	},
 	integrations: [
 		starlight({
 			title: 'Integraciones Purolomo',
 			defaultLocale: 'es',
 			lastUpdated: true,
 			 credits: false,
-			locales: {
-				es: { label: 'Español', lang: 'es' },
-			},
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
 			sidebar: [
 				{
