@@ -4,9 +4,6 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	redirects: {
-		"/": "/guides/sigero",
-	},
 	integrations: [
 		starlight({
 			title: 'Integraciones Purolomo',
@@ -28,4 +25,6 @@ export default defineConfig({
 			],
 		}),
 	],
+	site: 'https://Virtual-Office-Group.github.io',
+	base: '',
 });
