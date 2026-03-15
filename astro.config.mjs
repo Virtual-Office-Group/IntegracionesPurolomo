@@ -27,6 +27,6 @@ export default defineConfig({
 	base: 'IntegracionesPurolomo',
 	trailingSlash: 'always',
 	redirects:{
-		'/':'/guide/sigero'
+		'/':'IntegracionesPurolomo/guide/sigero'
 	}
 });
