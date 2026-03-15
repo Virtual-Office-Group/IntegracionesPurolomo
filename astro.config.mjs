@@ -17,7 +17,7 @@ export default defineConfig({
 					label: 'Integraciones',
 					items: [
 						
-						{ label: 'Integration Sigero', slug: '/guides/sigero' },
+						{ label: 'Integration Sigero', slug: 'guides/sigero' },
 					],
 				},
 			],
