@@ -1,0 +1,1316 @@
+---
+title: 'Integraciones Sigero - Business Central'
+description: Guia para integraciones con el Sistema Sigero y Business Central.
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import { Code } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
+
+## Propuesta Técnica
+
+### Flujos de Inserción vía Service Bus + Logic Apps
+
+#### Lineamiento de Integración
+
+**Herramientas de Consumo**: El acceso podrá realizarse mediante herramientas de prueba de APIs (como Postman), scripts de administración o desde la propia interfaz de consulta de Sigero, siempre bajo intervención humana.
+
+**Autenticación Individual**: Cada consulta debe estar respaldada por un token de acceso seguro (OAuth 2.0), asegurando que solo personal autorizado pueda "leer" los datos del ERP.
+Restricción de Operaciones: Por seguridad, el acceso manual vía API se configurará preferentemente en modo **"Solo Lectura"** (GET) para las entidades maestras. Cualquier inserción de datos deberá seguir el canal oficial del Service Bus para mantener la trazabilidad.
+
+## Puntos Previos
+
+### Configuración de credenciales de Business Central
+
+Antes de poder utilizar las apis, Webhooks e integrar aplicaciones externas con Business Central, es fundamental contar con las credenciales de acceso necesarias.
+
+#### Credenciales requeridas
+
+1.	URL del ambiente de Business Central 
+    -	URL de producción o ambiente de pruebas
+    -	Ejemplo:https://api.businesscentral.dynamics.com/v2.0/[tenantId]/[environmentName]/company([companyId])
+    -	**TenantId**: Identificador único del Proveedor.
+    -	**enviromentName**: Nombre del ambiente a trabajar.
+    -	**companyId**: Identificador de la compañía
+2.	Credenciales OAuth 2.0 
+    -	**Client ID (Aplicación ID)**: Identificador de la aplicación registrada
+    -	**Client Secret**: Clave secreta de la aplicación.
+
+3.	Permisos y alcances (Scopes) 
+    -   Definir los permisos necesarios para acceder a las Apis
+    -	Ejemplo: https://api.businesscentral.dynamics.com/.default
+    -	Token de acceso (Oauth 2.0)
+
+### Recursos para pruebas
+
+Para facilitar la integración y pruebas de los Webhook de Business Central, está disponible un espacio de trabajo en Postman. Esto permite interactuar con la API sin necesidad de desarrollar código de cliente de manera inmediata.
+
+<LinkCard
+  title="Colección Business Central (Integración Romana)"
+  href="https://documenter.getpostman.com/view/51769148/2sBXVkC9p7"
+  target={'_blank'}
+/>
+
+<LinkCard
+  title="Ejemplo Webhook Trigger (Azure Function)"
+  href="https://github.com/Virtual-Office-Group/WebHookHttpTrigger/blob/master/HttpTriggerAzureFunction/Function1.cs"
+  target={'_blank'}
+/>
+
+
+## Compañías de business central
+
+Antes de trabajar con cualquier entidad en Business Central, es necesario conocer el `Company ID` de la compañía con la que se desea interactuar. Este es un paso fundamental ya que todas las operaciones posteriores requieren este identificador.
+
+#### Consultar lista de Compañías
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/companies
+Content-Type: application/json 
+Authorization: Bearer {access_token}
+```
+
+#### Respuesta esperada
+
+```json
+{
+  "@odata.context": "{{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/$metadata#companies}}",
+  "value": [
+    {
+      "id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "systemVersion": "25000",
+      "timestamp": 45887,
+      "name": "CRONUS",
+      "displayName": "CRONUS International Ltd.",
+      "businessProfileId": "",
+      "systemCreatedAt": "2023-01-15T10:30:00Z",
+      "systemCreatedBy": "a25fcdd5-5d7d-4986-b6da-2e09aa08c17f",
+      "systemModifiedAt": "2024-06-20T14:45:00Z",
+      "systemModifiedBy": "a25fcdd5-5d7d-4986-b6da-2e09aa08c17f",
+    },
+    {
+      "id": "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy",
+      "systemVersion": "25000",
+      "timestamp": 45887,
+      "name": "CRONUS",
+      "displayName": "Mi Empresa S.A.",
+      "businessProfileId": "",
+      "systemCreatedAt": "2023-01-15T10:30:00Z",
+      "systemCreatedBy": "a25fcdd5-5d7d-4986-b6da-2e09aa08c17f",
+      "systemModifiedAt": "2024-06-20T14:45:00Z",
+      "systemModifiedBy": "a25fcdd5-5d7d-4986-b6da-2e09aa08c17f",
+    }
+  ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| @odata.context |  |	La URL que define el esquema y el origen de los datos |
+| id |	Guid | 	ID único de la compañia |
+| systemVersion |	Integer |	Versión del sistema |
+| timestamp |	Integer | 	segundos del sistema |
+| name	| Text[30] |	Nombre interno de la compañía. |
+| displayName |	Text[250] |	Nombre para mostrar de la compañía. |
+| businessProfileId | Guid |	ID del perfil de negocio (si aplica). |
+| systemCreatedAt | Datetime | Fecha de creación de la compañía en el sistema. |
+| systemCreatedBy |	Guid |	ID del usuario cuando se creó |
+| systemModifiedBy |	Guid |	ID del usuario cuando se modificó. |
+| systemModifiedAt |	Datetime |	Fecha de última modificación. |
+
+
+## Uso de la Api en Business Central
+
+Para interactuar con una API de Business Central, normalmente sigues estos pasos:
+
+•	**Configuración en Azure**: Debes registrar una aplicación en el portal de Azure para obtener un Client ID y un Secret.
+•	Identificar el Endpoint: 
+    -   La URL suele tener esta estructura: https://api.businesscentral.dynamics.com/v2.0/{tenant_id}/{environment}/api/v2.0/companies({id})/customers
+    - Realizar la petición (Verbos HTTP)
+
+      - **GET**: Para leer datos.
+      - **POST**: Para crear registros nuevos.
+      - **PATCH**: Para actualizar parcialmente un registro.
+      -	**DELETE**: Para eliminar (con precaución).
+
+### El límite de consultas
+
+Business Central utiliza un sistema de cuotas basado en el tiempo. Si se exceden, la API devolverá un error **HTTP 429 (Too Many Requests)**.
+
+|ConceptoLímite (SaaS) | Solicitudes Concurrentes |
+| ------- | -----------|
+| Máximo solicitudes simultaneas | 100 solicitudes simultáneas por entorno. |
+| Solicitudes por Minuto | Máximo 6,000 por minuto.| 
+
+
+### El límite  de registros por consulta
+
+Business Central puede un máximo de **20,000** registros por petición. Si tu consulta supera ese número, Business Central cortará la respuesta.
+
+
+### Uso de $select
+
+Por defecto, si llamas a un endpoint como `/customers`, Business central te devuelve todos los campos (nombre, dirección, saldo, correos, etc.). Si solo quieres el nombre y el saldo, añades el parámetro a la URL:
+
+```json
+.../api/v2.0/companies(id)/customers?$select=number,displayName,balance
+```
+
+deben escribirse exactamente como aparecen en la definición de la API. Usa comas para separar los campos, sin espacios.
+
+### Uso del @odata.nextLink
+
+es una propiedad de control que contiene una URL de continuación. Representa un curso de estado en el servidor que permite al cliente recuperar el siguiente subconjunto de resultados (página) de una consulta masiva. Se genera automáticamente cuando el volumen de datos excede el límite de registros por respuesta.
+
+**Ejemplo de Petición**
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/.../items?$select=number,displayName&$top=2
+```
+
+**Ejemplo de JSON de Respuesta**
+
+```json
+{
+ "@odata.context":"https://api.businesscentral.dynamics.com/v2.0/.../$metadata#items(number,displayName)", 
+"value": [
+ {
+       "@odata.etag": "W/\"JzQ0OzE2MTI5ODc1NDI2MzI0ODExOzAwOyc=\"", 
+         "number": "1896-S",
+         "displayName": "Escritorio ATHENS" 
+}, 
+{
+        "@odata.etag": "W/\"JzQ0OzE5MDU2ODc1NDI2MzI0ODExOzAwOyc=\"",
+        "number": "1900-S",
+         "displayName": "Silla PARIS" 
+}
+ ],
+ "@odata.nextLink": "https://api.businesscentral.dynamics.com/v2.0/.../items?$select=number,displayName&$skiptoken=X'08100000005349500000'" 
+}
+```
+
+<Aside type="note">@odata.nextLink: Es la URL que debes llamar para obtener los siguientes 2 productos.</Aside>
+
+### Uso de $top
+
+Define el límite superior de registros que el servidor debe retornar en el cuerpo de la respuesta.
+
+ejemplo: Obtener los primeros 5 registros de los articulos.
+
+```json
+/items?$top=5
+```
+
+
+
+Se utiliza para omitir un número específico de registros de una colección antes de devolver los resultados restantes. Es el complemento directo de $top y es fundamental para implementar la lógica de paginación
+
+```json
+  GET .../items?$top=10&$skip=0
+  GET .../items?$top=10&$skip=10
+```
+
+### Uso de $orderby
+
+Especifica los criterios de clasificación de los recursos de una colección. Si no se incluye, Business Central devuelve los datos basándose en la Clave Primaria (Primary Key) de la tabla por defecto.
+
+```json
+GET .../salesOrders?$orderby=orderDate desc, customerName asc
+```
+
+## Uso de Webhook con Business Central
+
+Los Webhook son mecanismos de comunicación que permiten la integración en tiempo real entre Business Central y aplicaciones externas. 
+
+<Aside type="caution">
+    **Importante**: El id de las compañías debe ser guardado localmente en tu aplicación para utilizarlo en consultas posteriores. Esto evitará tener que consultar la lista de compañías en cada operación y mejorará el rendimiento de tu integración.
+</Aside>
+
+### Creación de suscripción
+
+Para implementar Webhook con Business Central, es necesario seguir un proceso de configuración que incluye la creación del endpoint y la suscripción a eventos.
+Pasos para la configuración:
+
+    1.	Creación de la Suscripción mediante API
+
+<Aside type="caution">
+    El uso de Webhook está diseñado específicamente para recibir notificaciones automáticas en tiempo real cada vez que ocurra un cambio en Business Central, eliminando así la necesidad de realizar consultas periódicas (polling) que sobrecargan el sistema y consumen recursos de forma ineficiente.
+</Aside>
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json 
+Authorization: Bearer {access_token} 
+body: { 
+  "notificationUrl": "https://tu-servidor.com/webhook/endpoint",
+  "resource": "companies(companyid) /purchaseOrders",
+  "clientState": "OptionalSecretToken123",
+}
+```
+
+Parámetros de la suscripción:
+
+- **notificationUrl**: URL de tu endpoint que recibirá las notificaciones.
+- **resource**: Entidad a la que te suscribes. Ejemplo: 
+            -	**companies(companyId)/purchaseOrders** - Órdenes de compra.
+- **clientState**: Token secreto opcional para validar que las notificaciones vienen de BC.
+
+<Aside type="caution">
+    Para completar la suscripción, Business Central envía un POST a tu URL con un parámetro llamado validationToken que tu servidor debe capturar y devolver inmediatamente como texto plano con un código 200 OK para confirmar que el endpoint es válido y está activo.
+</Aside>
+
+<Aside type="caution">
+   Business Central utiliza la combinación de la notificationUrl y el resource como una llave única en su base de datos de gestión de eventos. Si intentas registrar una suscripción con una URL que ya existe para ese mismo recurso (incluso si es para una empresa o un entorno diferente dentro del mismo tenant), el sistema devolverá un error.
+</Aside>
+
+**Respuesta esperada (JSON)**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#subscriptions/$entity",
+    "@odata.etag": "W/\"JzE5Ozg3OTQ1NDA5NjgxOTE4MzYyOTMxOzAwOyc=\"",
+    "subscriptionId": "a10b670ba93149c98c89fa574762ab2b",
+    "notificationUrl": "https://funcionesdesarrollovog-b7aaazc5dmgzctbx.canadacentral-01.azurewebsites.net/api/FunctionHttpTrigger?code=C2u",
+    "resource": "api/v2.0/companies(9c2a3721-0c80-ef11-ac21-0022483842ea)/customers",
+    "timestamp": 6465970,
+    "userId": "79d10a1b-ea16-483b-964d-5d547971cf47",
+    "lastModifiedDateTime": "2026-02-05T18:37:57Z",
+    "clientState": "optionalValueOf2048",
+    "expirationDateTime": "2026-02-08T18:37:57Z",
+    "systemCreatedAt": "2026-02-05T18:38:01.4Z",
+    "systemCreatedBy": "79d10a1b-ea16-483b-964d-5d547971cf47",
+    "systemModifiedAt": "2026-02-05T18:38:01.4Z",
+    "systemModifiedBy": "79d10a1b-ea16-483b-964d-5d547971cf47"
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Identificador de versión del registro para el control de concurrencia optimista. |
+| subscriptionId | GUID | Identificador único de la suscripción de Webhook creada. |
+| notificationUrl | String (URL) | Dirección URL donde Business Central enviará las notificaciones. |
+| resource | String | Ruta de la API que define el recurso monitoreado. |
+| timestamp | BigInt | Número interno de control de versiones de la base de datos SQL. |
+| userId | GUID | Identificador único del usuario de Business Central que originó la suscripción. |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación de los parámetros de suscripción. |
+| clientState | String | Secreto compartido para validar la autenticidad de las notificaciones. |
+| expirationDateTime | DateTime | Fecha y hora exacta en la que el Webhook dejará de estar activo. |
+| systemCreatedAt | DateTime | Marca de tiempo exacta de la creación del registro en el sistema. |
+| systemCreatedBy | GUID | Identificador del usuario o servicio que creó el registro. |
+| systemModifiedAt | DateTime | Marca de tiempo de la última modificación registrada por el sistema. |
+| systemModifiedBy | DateTime | Identificador del usuario o servicio que realizó la última modificación en el sistema. | 
+
+
+
+### Renovación de suscripciones:
+
+Las suscripciones expiran máximo en 3 días, por lo que debes renovarlas periódicamente. Para renovar, debes enviar una solicitud PATCH al endpoint de la suscripción específica. No es necesario esperar a que venza; puedes hacerlo de forma proactiva.
+
+<Aside type="caution">
+   Cuando envías la solicitud para renovar, Business Central te exige demostrar que conoces la versión actual del registro que quieres modificar. para eso se utiliza @odata.etag de la suscripción.
+</Aside>
+
+export const renove = `
+PATCH 
+{{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})}} 
+Content-Type: application/json 
+If-Match: @odata.etag (o el ETag específico de la suscripción) 
+Authorization: Bearer {access_token}
+`
+
+<Code code={renove} lang="js" />
+
+**Respuesta esperada (JSON)**
+
+export const renove_result = `
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#subscriptions/$entity",
+    "@odata.etag": "W/\"JzE5Ozg3NjQ5MTcyMDMyMDAwODMwNjcxOzAwOyc=\"",
+    "subscriptionId": "a10b670ba93149c98c89fa574762ab2b",
+    "notificationUrl": "https://funcionesdesarrollovog-b7aaazc5dmgzctbx.canadacentral-01.azurewebsites.net/api/FunctionHttpTrigger?code=",
+    "resource": "api/v2.0/companies(9c2a3721-0c80-ef11-ac21-0022483842ea)/customers",
+    "timestamp": 6466168,
+    "userId": "79d10a1b-ea16-483b-964d-5d547971cf47",
+    "lastModifiedDateTime": "2026-02-05T19:09:46Z",
+    "clientState": "optionalValueOf2048",
+    "expirationDateTime": "2026-02-08T19:09:46Z",
+    "systemCreatedAt": "2026-02-05T18:38:01.4Z",
+    "systemCreatedBy": "79d10a1b-ea16-483b-964d-5d547971cf47",
+    "systemModifiedAt": "2026-02-05T19:09:48.653Z",
+    "systemModifiedBy": "79d10a1b-ea16-483b-964d-5d547971cf47"
+}
+`
+
+<Code code={renove_result} lang="js" />
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Identificador de versión del registro para control de concurrencia optimista (usar en `If-Match`). |
+| subscriptionId | GUID | Identificador único de la suscripción de Webhook. |
+| notificationUrl | String (URL) | Dirección URL donde Business Central enviará las notificaciones. |
+| resource | String | Ruta de la API que define el recurso monitoreado. |
+| timestamp | BigInt / Integer | Valor interno de control de versiones de la base de datos. |
+| userId | GUID | Identificador del usuario que creó o autorizó la suscripción. |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación de la suscripción. |
+| clientState | String | Secreto compartido definido por el cliente para validar notificaciones. |
+| expirationDateTime | DateTime | Fecha y hora en la que la suscripción expirará. |
+| systemCreatedAt | DateTime | Marca temporal de creación del registro en el sistema. |
+| systemCreatedBy | GUID | Identificador del usuario o servicio que creó el registro. |
+| systemModifiedAt | DateTime | Marca temporal de la última modificación técnica registrada. |
+| systemModifiedBy | GUID | Identificador del usuario o servicio que realizó la última modificación. |
+
+<Aside type="caution">
+  Tras hacer la renovación con éxito, la respuesta de Business Central te devolverá un nuevo JSON con un nuevo **@odata.etag**. Debes guardar ese nuevo valor si planeas hacer otra actualización más adelante.
+</Aside>
+
+### Listar suscripciones activas
+
+Para listar las suscripciones activas en el entorno de Business Central realiza una petición GET al recurso de `subscriptions`.
+
+export const list_subscriptions = `
+GET {{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions}} 
+Authorization: Bearer {access_token}
+`;
+
+<Code code={list_subscriptions} lang="js" />
+
+**Respuesta esperada (JSON)**
+
+export const list_subscriptions_result = `
+{
+  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#subscriptions",
+  "value": [
+    {
+      "@odata.etag": "W/\"JzE5Ozg3NjQ5MTcyMDMyMDAwODMwNjcxOzAwOyc=\"",
+      "subscriptionId": "a10b670ba93149c98c89fa574762ab2b",
+      "notificationUrl": "https://funcionesdesarrollovog-b7aaazc5dmgzctbx.canadacentral-01.azurewebsites.net/api/FunctionHttpTrigger?code=",
+      "resource": "api/v2.0/companies(9c2a3721-0c80-ef11-ac21-0022483842ea)/customers",
+      "timestamp": 6466168,
+      "userId": "79d10a1b-ea16-483b-964d-5d547971cf47",
+      "lastModifiedDateTime": "2026-02-05T19:09:46Z",
+      "clientState": "optionalValueOf2048",
+      "expirationDateTime": "2026-02-08T19:09:46Z",
+      "systemCreatedAt": "2026-02-05T18:38:01.4Z",
+      "systemCreatedBy": "79d10a1b-ea16-483b-964d-5d547971cf47",
+      "systemModifiedAt": "2026-02-05T19:09:48.653Z",
+      "systemModifiedBy": "79d10a1b-ea16-483b-964d-5d547971cf47"
+    }
+  ]
+}
+`;
+
+<Code code={list_subscriptions_result} lang="js" />
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | Indica el origen de los metadatos y el esquema de la respuesta. |
+| value | Array | Contenedor con las suscripciones encontradas. |
+| @odata.etag | String | Sello de versión del registro; usar para `If-Match` en actualizaciones. |
+| subscriptionId | GUID | Identificador único de la suscripción (usado para PATCH/DELETE). |
+| notificationUrl | String (URL) | URL que recibirá las notificaciones de cambios. |
+| resource | String | Entidad o ruta de la API que se está monitoreando. |
+| timestamp | BigInt / Integer | Valor interno de control de versiones en la base de datos. |
+| userId | GUID | ID del usuario que creó o autorizó la suscripción. |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación de la suscripción. |
+| clientState | String | Valor secreto definido por el cliente para validar notificaciones. |
+| expirationDateTime | DateTime | Fecha y hora en la que la suscripción expirará. |
+| systemCreatedAt | DateTime | Marca temporal de creación del registro en el sistema. |
+| systemCreatedBy | GUID | Identificador del usuario o servicio que creó el registro. |
+| systemModifiedAt | DateTime | Marca temporal de la última modificación técnica registrada. |
+| systemModifiedBy | GUID | Identificador del usuario o servicio que realizó la última modificación. |
+
+
+### Eliminar una suscripción
+
+Para eliminar la suscripción que tienes activa, debes realizar una petición DELETE apuntando específicamente al subscriptionId que tienes en tu JSON.
+
+export const deleteSuscription = `
+    DELETE 
+    {{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})}} 
+    Authorization: Bearer {access_token} 
+    Content-Type: application/json 
+    If-Match: @odata.etag (o el ETag específico de la suscripción)
+`;
+
+<Code code={deleteSuscription} lang="js" />
+
+Cuando lanzas el DELETE con éxito, la respuesta de Business Central no contiene texto, solo un código de estado:
+
+    - Código HTTP: **204 No Content**
+    - Significado: La operación se realizó correctamente y la suscripción ha sido borrada permanentemente. No hay cuerpo (body) en la respuesta porque el recurso ya no existe.
+
+### Notificaciones y tipos de cambios
+
+Cada notificación enviada al suscriptor (notificationUrl) puede contener múltiples notificaciones de diferentes suscripciones. Aquí tienes un ejemplo de carga útil de notificación:
+
+export const notificationsSuscriptions = `
+    {
+  "value": [
+    {
+      "subscriptionId": "webhookItemsId",
+      "clientState": "someClientState",
+      "expirationDateTime": "2018-10-29T07:52:31Z",
+      "resource": "api/v2.0/companies(b18aed47-c385-49d2-b954-dbdf8ad71780)/items(26814998-936a-401c-81c1-0e848a64971d)",
+      "changeType": "updated",
+      "lastModifiedDateTime": "2018-10-26T12:54:20.467Z"
+    },
+    {
+      "subscriptionId": "webhookCustomersId",
+      "clientState": "someClientState",
+      "expirationDateTime": "2018-10-29T12:50:30Z",
+      "resource": "api/v2.0/companies(b18aed47-c385-49d2-b954-dbdf8ad71780)/customers(130bbd17-dbb9-4790-9b12-2b0e9c9d22c3)",
+      "changeType": "created",
+      "lastModifiedDateTime": "2018-10-26T12:54:26.057Z"
+    },
+    {
+      "subscriptionId": "webhookCustomersId",
+      "clientState": "someClientState",
+      "expirationDateTime": "2018-10-29T12:50:30Z",
+      "resource": "api/v2.0/companies(b18aed47-c385-49d2-b954-dbdf8ad71780)/customers(4b4f31f0-dc1c-4033-b2aa-ab03ca1d6ebc)",
+      "changeType": "deleted",
+      "lastModifiedDateTime": "2018-10-26T12:54:30.503Z"
+    },    
+    {
+      "subscriptionId": "salesInvoice",
+      "clientState": "someClientState",
+      "expirationDateTime": "2018-10-20T10:55:01Z",
+      "resource": "/api/v2.0/companies(7dbba574-5f69-4167-a43e-fb975045de15)/salesInvoices?$filter=lastDateTimeModified%20gt%202018-10-15T11:00:00Z",
+      "changeType": "collection",
+       "lastModifiedDateTime": "2018-10-26T12:54:30.503Z"
+    }
+  ]
+}
+`;
+
+<Code code={notificationsSuscriptions} lang="js" />
+
+El parámetro "changeType" indica el tipo de cambio:
+- Created: Se creo un nuevo registro
+- Updated: Se modifico el registro.
+- Deleted: Se elimino el registro.
+- Collection: Significa que Business Central envía una notificación de que se han creado o cambiado muchos registros. Se aplica un filtro al recurso, lo que permite al suscriptor solicitar a todas las entidades que cumplan con el filtro.
+
+
+<Aside type="caution">
+  Las notificaciones no se envían inmediatamente cuando el registro cambia. Al retrasar las notificaciones, Business Central puede asegurarse de que solo se envíe una notificación, aunque el registro haya cambiado varias veces en cuestión de segundos. Por defecto, el sistema espera 30 segundos tras el primer cambio en una entidad antes de enviar la notificación. Durante el retraso de 30 segundos, si se modifican más de 1.000 registros, se envía una única notificación.
+</Aside>
+
+## Recepción de Almacenes
+
+## Pedidos de Transferencia
+**Encabezado** 
+**Datos disponibles**
+
+export const transfer_header = `
+{
+      "@odata.etag": "W/\"JzIwOzEyMTgyNTIwNDM2NzYxNTg2OTkzMTswMDsn\"",
+      "No": "I-TRAN0000056",
+      "id": "8db86854-4b08-f111-8405-000d3ac0ae45",
+      "transferFromCode": "NUEVO",
+      "transferFromName": "NUEVA LOCACIÓN",
+      "transferFromName2": "",
+      "transferFromAddress": "",
+      "transferFromAddress2": "",
+      "transferFromPostCode": "",
+      "transferFromCity": "",
+      "transferFromCounty": "",
+      "transferFromContact": "",
+      "trsfFromCountryRegionCode": "",
+      "transferToCode": "SIMPLE",
+      "transferToName": "ALMACEN SIMPLE",
+      "transferToName2": "",
+      "transferToAddress": "",
+      "transferToAddress2": "",
+      "transferToPostCode": "",
+      "transferToCity": "",
+      "transferToCounty": "",
+      "transferToContact": "",
+      "trsfToCountryRegionCode": "",
+      "status": "Open",
+      "comment": false,
+      "directTransfer": false,
+      "inTransitCode": "TRANSITO",
+      "shipmentDate": "2026-02-12",
+      "receiptDate": "2026-02-12",
+      "postingDate": "2026-02-12",
+      "shippingAgentCode": "",
+      "plate": "",
+      "systemCreatedAt": "2026-02-12T19:45:07.76Z",
+      "systemModifiedAt": "2026-02-12T19:47:30.867Z"
+    }
+`;
+
+<Code code={transfer_header} lang="js" />
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID pedido de transferencia |
+| No | Text[20] | Código pedido de transferencia |
+| transferFromCode | Text[20] | El código de la ubicación de origen. |
+| transferFromName | Text[100] | Nombre comercial o descripción de la ubicación de origen. |
+| transferFromName2 | Text[50] | Campo de nombre secundario para el origen. |
+| transferFromAddress | Text[100] | Dirección física del almacén de origen. |
+| transferFromAddress2 | Text[50] | Dirección adicional del almacén de origen. |
+| transferFromPostCode | Text[20] | Código postal de la ubicación de origen. |
+| transferFromCity | Text[30] | Ciudad de la ubicación de origen. |
+| transferFromCounty | Text[30] | Provincia, estado o condado de la ubicación de origen. |
+| transferFromContact | Text[100] | Persona de contacto responsable. |
+| trsfToCountryRegionCode | Text[10] | Código ISO del país/región de destino. |
+| status | Text[30] | Indica el ciclo de vida del documento. |
+| comment | Boolean | Indica si existen líneas de comentarios anexadas al encabezado. |
+| directTransfer | Boolean | Define el flujo: false = requiere envío y recepción; true = movimiento instantáneo. |
+| inTransitCode | Text[10] | Código del almacén virtual de tránsito. |
+| shipmentDate | Datetime | Fecha prevista en la que se registra la salida. |
+| receiptDate | Datetime | Fecha prevista en la que se registra la entrada. |
+| postingDate | Datetime | Fecha de registro contable. |
+| shippingAgentCode | Text[10] | Código del transportista. |
+| plate | Text[10] | Campo de texto para la matrícula. |
+| systemCreatedAt | Datetime | Marca de tiempo que indica el momento exacto de la creación del registro. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+**Líneas** 
+
+**Datos disponibles**
+
+export const transfer_lines = `
+{
+      "@odata.etag": "W/\"JzE5OzI5MDEzMzkwNDI5NjU0NjExNjcxOzAwOyc=\"",
+      "documentNo": "I-TRAN0000056",
+      "id": "73666881-4b08-f111-8405-000d3ac0ae45",
+      "lineNo": 10000,
+      "itemNo": "PROD001",
+      "qty": 30,
+      "description": "HARINA DE MAIZ ",
+      "unitOfMeasure": "Kilo",
+      "qtytoShip": 30,
+      "qtytoReceive": 0,
+      "qtyShipped": 0,
+      "qtyReceived": 0,
+      "status": "Open",
+      "unitMeasureCode": "KG",
+      "systemModifiedAt": "2026-02-12T19:47:30.85Z"
+ }
+`;
+
+<Code code={transfer_lines} lang="js" />
+
+**Campos de la respuesta (Líneas)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de la línea. |
+| lineNo | Integer | Es el identificador secuencial de la línea. |
+| itemNo | Text | El código o SKU del producto en tu inventario. |
+| description | Text | El nombre comercial del producto. |
+| qty | Decimal/Integer | La cantidad total que se planea transferir. |
+| qtytoShip | Decimal/Integer | Cantidad pendiente por enviar. |
+| qtytoReceive | Decimal/Integer | Cantidad pendiente por recibir. |
+| qtyShipped | Decimal/Integer | Cantidad ya enviada. |
+| qtyReceived | Decimal/Integer | Cantidad ya recibida. |
+| status | Text | Estado de la línea (Open, Released, etc.). |
+| unitOfMeasure | Text | Unidad de medida legible. |
+| unitMeasureCode | Text | Código de la unidad de medida (ej. KG). |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+## Ajuste de Inventario
+
+**Datos disponibles:**
+
+export const inventory_adjustment = `
+{
+            "@odata.etag": "W/\"JzE5OzUyNzU3Nzg0NzIwNzgxMTYwNjkxOzAwOyc=\"",
+            "journalId": "af6ea8d5-2c08-f111-8405-002248d31bd2",
+            "journalTemplateName": "PRODUCTO",
+            "journalBatchName": "GENERICO",
+            "lineNo": 20000,
+            "itemNo": "PROD001",
+            "description": "HARINA DE MAIZ ",
+            "entryType": "Positive Adjmt.",
+            "sourceNo": "",
+            "documentNo": "4874",
+            "locationCode": "PRINCIPAL",
+            "quantity": 40,
+            "invoicedQuantity": 40,
+            "unitAmount": 55222.331,
+            "unitCost": 55222.331,
+            "amount": 2208893.24,
+            "discountAmount": 0,
+            "systemModifiedAt": "2026-02-12T16:06:52.377Z"
+}
+`;
+
+<Code code={inventory_adjustment} lang="js" />
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| journalId | Guid | El ID de la cabecera del diario. |
+| journalTemplateName | Text[10] | Nombre de la Plantilla del Diario. Define la estructura y el comportamiento del diario. |
+| journalBatchName | Text[10] | Nombre del Sección. |
+| lineNo | Integer | El número de línea. |
+| itemNo | Text[20] | El código del producto. |
+| description | Text[100] | Texto descriptivo de la línea. |
+| entryType | Text[30] | Define la naturaleza del movimiento. |
+| documentNo | Text[30] | El número de documento externo. |
+| locationCode | Text[10] | Código del Almacén. |
+| quantity | Decimal | Cantidad física que entrará o saldrá del inventario. |
+| invoicedQuantity | Decimal | Cantidad que será procesada financieramente. |
+| unitAmount | Decimal | Precio unitario del producto en la línea. |
+| unitCost | Decimal | Costo unitario que se utilizará para valorar el inventario. |
+| amount | Decimal | El valor total de la línea. |
+| discountAmount | Decimal | Valor monetario del descuento aplicado a la línea. |
+| systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+## Consumo Órdenes de Compra
+
+**Suscripción de webhook**
+
+El consumo de órdenes de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
+
+export const purchaseOrderWebhook = `
+POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "api/v2.0/companies({{companyId}})/purchaseOrders",
+  "clientState": ""
+}
+`;
+
+<Code code={purchaseOrderWebhook} lang="js" />
+
+**Consumir Endpoints**
+
+Para consultar manualmente las órdenes de compra, puedes consumir el endpoint estándar de Business Central.
+
+export const purchaseOrdersManual = `
+GET https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders
+Content-Type: application/json
+Authorization: Bearer {access_token}
+`;
+
+<Code code={purchaseOrdersManual} lang="js" />
+
+**Datos disponibles:**
+
+```json
+{
+  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/$metadata#companies({{companyId}})/purchaseOrders",
+  "value": [
+    {
+      "id": "a10b670b-a931-49c9-8c89-fa574762ab2b",
+      "number": "OC-000001",
+      "vendorId": "8797deb4-5121-f011-9af7-002248dfda48",
+      "vendorNumber": "C-PROV0000008",
+      "vendorName": "PROVEEDOR 1",
+      "orderDate": "2026-02-12",
+      "postingDate": "2026-02-12",
+      "expectedReceiptDate": "2026-02-14",
+      "status": "Open",
+      "lastModifiedDateTime": "2026-02-12T16:06:52.377Z"
+    }
+  ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
+| id | Guid | Identificador único de la orden de compra. |
+| number | Code[20] | Número del documento de compra. |
+| vendorId | Guid | Identificador único del proveedor asociado. |
+| vendorNumber | Code[20] | Código del proveedor. |
+| vendorName | Text[100] | Nombre del proveedor. |
+| orderDate | Date | Fecha de emisión de la orden de compra. |
+| postingDate | Date | Fecha contable del documento. |
+| expectedReceiptDate | Date | Fecha estimada de recepción. |
+| status | Enum/Text | Estado actual de la orden. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
+
+## Consumo de Maestros de Datos
+
+### Maestro de Artículos
+
+El maestro de artículos contiene toda la información relacionada con los productos que maneja la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "/api/v2.0/companies({{companyId}})/Items",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado de Articulos (Sincronización Manual)**
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/items
+Content-Type: application/json 
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles:**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/items",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzE3Mzg5MzEwMDE1NjQyNjE0OTExOzAwOyc=\"",
+            "id": "1ea0551c-7378-f011-8eef-002248de9fb5",
+            "number": "ALQUILER",
+            "displayName": "Alquiler de inmueble",
+            "displayName2": "",
+            "type": "Service",
+            "itemCategoryId": "00000000-0000-0000-0000-000000000000",
+            "itemCategoryCode": "",
+            "blocked": false,
+            "gtin": "",
+            "inventory": 0,
+            "unitPrice": 0,
+            "priceIncludesTax": false,
+            "unitCost": 0,
+            "taxGroupId": "00000000-0000-0000-0000-000000000000",
+            "taxGroupCode": "",
+            "baseUnitOfMeasureId": "5bcfdbef-5021-f011-9af7-002248dfda48",
+            "baseUnitOfMeasureCode": "UND",
+            "generalProductPostingGroupId": "6dcfdbef-5021-f011-9af7-002248dfda48",
+            "generalProductPostingGroupCode": "SERVICIOS",
+            "inventoryPostingGroupId": "00000000-0000-0000-0000-000000000000",
+            "inventoryPostingGroupCode": "",
+            "lastModifiedDateTime": "2025-08-13T18:28:16.41Z"
+        }
+ ]}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| **@odata.context** | String (URL) | La URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| number | Code[20] | Es el código de producto (No. de artículo). |
+| displayName | Text[100] | El nombre principal del artículo que aparecerá en los documentos. |
+| displayName2 | Text[50] | Descripción secundaria o extendida para nombres en otros idiomas o detalles técnicos. |
+| type | Enum/Text[20] | Define el tipo de productos (Inventory, Service o Non-Inventory). |
+| itemCategoryId | Guid | ID de la categoría del producto. |
+| itemCategoryCode | Code[20] | Código de la categoría asignada. |
+| blocked | Boolean | Si es true, el ítem está deshabilitado para transacciones. |
+| gtin | Code[14] | Código de barras estándar internacional. |
+| inventory | Decimal | Cantidad física actual en existencias. |
+| unitPrice | Decimal | Precio de venta unitario antes de impuestos. |
+| priceIncludesTax | Boolean | Indica si el valor en unitPrice ya contiene el impuesto (IVA/VAT). |
+| unitCost | Decimal | Costo unitario del producto. |
+| taxGroupId | Guid | ID del grupo de impuestos. |
+| taxGroupCode | Code[20] | Código que vincula el producto con una configuración de impuestos específica. |
+| baseUnitOfMeasureId | Guid | ID de la unidad de medida base. |
+| baseUnitOfMeasureCode | Code[10] | Código de la unidad de medida (ej. PZ, UND, KG). |
+| generalProductPostingGroupId | Guid | ID del grupo de registro de producto (General). |
+| generalProductPostingGroupCode | Code[20] | Determina las cuentas de ingresos y gastos en el Libro Mayor. |
+| inventoryPostingGroupId | Guid | ID del grupo de registro de inventario. |
+| inventoryPostingGroupCode | Code[20] | Determina la cuenta de activos (Inventario) en el balance. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
+
+
+### Maestro de Clientes
+
+El maestro de clientes contiene toda la información relacionada con los clientes registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/api/v2.0/companies({{companyId}})/customers",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado de clientes (Sincronización Manual)**
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/customers
+Content-Type: application/json 
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles:**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/customers",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzQyMzIwNDQ4NTc1OTY5Njg3ODkxOzAwOyc=\"",
+            "id": "edceedac-2825-f011-9af7-6045bd39528a",
+            "number": "V-CLI0000025",
+            "displayName": "CLIENTE MODIFICADO",
+            "type": "Company",
+            "addressLine1": "",
+            "addressLine2": "",
+            "city": "",
+            "state": "",
+            "country": "",
+            "postalCode": "",
+            "phoneNumber": "",
+            "email": "",
+            "website": "",
+            "salespersonCode": "",
+            "balanceDue": 0,
+            "creditLimit": 0,
+            "taxLiable": false,
+            "taxAreaId": "e9cfdbef-5021-f011-9af7-002248dfda48",
+            "taxAreaDisplayName": "Clientes Nacionales",
+            "taxRegistrationNumber": "",
+            "currencyId": "7d2ee4e9-5021-f011-9af7-002248dfda48",
+            "currencyCode": "USD",
+            "paymentTermsId": "6f2ee4e9-5021-f011-9af7-002248dfda48",
+            "shipmentMethodId": "00000000-0000-0000-0000-000000000000",
+            "paymentMethodId": "00000000-0000-0000-0000-000000000000",
+            "blocked": "_x0020_",
+            "lastModifiedDateTime": "2026-02-03T14:31:47.067Z"
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Un identificador de versión del registro (control de concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno del cliente. |
+| number | Code[20] | Es el código de cliente (No. de cliente). |
+| displayName | Text[100] | El nombre principal del cliente que aparecerá en los documentos. |
+| type | Enum | Define el tipo de cliente (Person o Company). |
+| addressLine1 | Text[100] | Campo para la dirección principal. |
+| addressLine2 | Text[50] | Campo para información adicional de la dirección. |
+| city | Text[30] | Nombre de la ciudad de residencia o de despacho del cliente. |
+| state | Text[30] | Estado, provincia, departamento o región administrativa. |
+| country | Code[10] | Código ISO del país. |
+| postalCode | Code[20] | Código o zona postal. |
+| phoneNumber | Text[30] | Número telefónico de contacto del cliente. |
+| email | Text[80] | Dirección de correo electrónico principal. |
+| website | Text[255] | Dirección URL del portal web del cliente. |
+| salespersonCode | Code[20] | Código del vendedor o asesor comercial responsable. |
+| balanceDue | Decimal | Monto total de las facturas vencidas e impagadas. |
+| creditLimit | Decimal | Límite de crédito financiero otorgado al cliente. |
+| taxLiable | Boolean | Si es true, el sistema calcula impuestos en sus ventas. |
+| taxAreaId | Guid | ID del área de impuestos asociada al cliente. |
+| taxAreaDisplayName | Text[100] | Nombre legible de la configuración de impuestos. |
+| taxRegistrationNumber | Text[20] | Número de identificación tributaria legal (RUC/NIT/RIF). |
+| currencyId | Guid | Identificador técnico (GUID) de la moneda del cliente. |
+| currencyCode | Code[10] | Código internacional de la moneda (ej. USD, EUR). |
+| paymentTermsId | Guid | ID que define las condiciones y días de crédito. |
+| shipmentMethodId | Guid | ID que define la logística o método de entrega. |
+| paymentMethodId | Guid | ID que indica la forma de pago habitual del cliente. |
+| blocked | Enum/Text[10] | Estado de bloqueo administrativo (ej. Blank, Ship, Invoice, All). |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
+
+
+### Maestro de Almacenes
+
+El maestro de almacenes contiene toda la información relacionada con los sitios registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/api/v2.0/companies(%companyId%)/locations",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado de almacenes (Sincronización Manual)**
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{TenantId}/{enviromentName}/api/v2.0/companies({companyId})/locations
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles:**
+
+```
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/locations/$entity",
+    "@odata.etag": "W/\"JzE5OzQxMTUyNTY0NzUzNjg4MDEyODIxOzAwOyc=\"",
+    "id": "79231df8-d921-f011-9af7-000d3ac04986",
+    "code": "PRINCIPAL",
+    "displayName": "ALMACEN PRINCIPAL",
+    "contact": "",
+    "addressLine1": "",
+    "addressLine2": "",
+    "city": "",
+    "state": "",
+    "country": "",
+    "postalCode": "",
+    "phoneNumber": "",
+    "email": "",
+    "website": "",
+    "lastModifiedDateTime": "2025-04-25T13:34:24.23Z"
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID del almacén. |
+| code | Text[10] | Es el código del almacén. |
+| displayName | Text[100] | Nombre descriptivo del almacén. |
+| contact | Text[100] | Nombre del contacto. |
+| addressLine1 | Text[100] | Campo para la dirección principal. |
+| addressLine2 | Text[50] | Campo para información adicional de la dirección. |
+| city | Text[30] | Nombre de la ciudad de residencia o de despacho. |
+| state | Text[30] | Estado, provincia, departamento o región administrativa. |
+| country | Text[30] | Código del país. |
+| postalCode | Text[20] | Código o zona postal. |
+| phoneNumber | Text[30] | Número telefónico de contacto. |
+| email | Text[80] | Dirección de correo electrónico. |
+| website | Text[255] | Dirección URL del almacén. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+### Maestro de Proveedores
+
+El maestro de proveedores contiene toda la información relacionada con todos los proveedores registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/api/v2.0/companies(%companyId%)/vendors",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado de proveedores (Sincronización Manual)**
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/%TenantID%/%enviromentName%/api/v2.0/companies(%companyId%)/vendors
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles:**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/vendors/$entity",
+    "@odata.etag": "W/\"JzIwOzEyNDExOTE4NjY5ODI1NDc2OTA2MTswMDsn\"",
+    "id": "8797deb4-5121-f011-9af7-002248dfda48",
+    "number": "C-PROV0000008",
+    "displayName": "PROVEEDOR  1",
+    "addressLine1": "",
+    "addressLine2": "",
+    "city": "Caracas",
+    "state": "Distrito Capital",
+    "country": "VE",
+    "postalCode": "1010",
+    "phoneNumber": "",
+    "email": "",
+    "website": "",
+    "taxRegistrationNumber": "",
+    "currencyId": "7d2ee4e9-5021-f011-9af7-002248dfda48",
+    "currencyCode": "USD",
+    "irs1099Code": "",
+    "paymentTermsId": "00000000-0000-0000-0000-000000000000",
+    "paymentMethodId": "00000000-0000-0000-0000-000000000000",
+    "taxLiable": false,
+    "blocked": "_x0020_",
+    "balance": 3840813.19,
+    "lastModifiedDateTime": "2026-02-05T00:00:07.777Z"
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de unidad. |
+| number | Text[20] | Es el código del proveedor. |
+| displayName | Text[100] | Nombre descriptivo del proveedor. |
+| addressLine1 | Text[100] | Campo para la dirección principal. |
+| addressLine2 | Text[50] | Campo para información adicional de la dirección. |
+| city | Text[30] | Nombre de la ciudad de residencia o de despacho del cliente. |
+| state | Text[30] | Estado, provincia, departamento o región administrativa. |
+| country | Text[10] | Código del país. |
+| postalCode | Text[20] | Código o zona postal. |
+| phoneNumber | Text[30] | Número telefónico de contacto. |
+| email | Text[80] | Dirección de correo electrónico. |
+| website | Text[255] | Dirección URL del almacén. |
+| taxRegistrationNumber | Text[50] | Es el identificador fiscal. |
+| taxLiable | Boolean | Define si el proveedor está sujeto a impuestos. |
+| currencyId | Guid | Identificador técnico (GUID) de la moneda que el cliente. |
+| currencyCode | Text[10] | Código internacional de la moneda. |
+| balance | Decimal | Es la suma de todos los movimientos contables abiertos. |
+| blocked | Boolean | Estado de bloqueo administrativo. |
+| paymentTermsId | Guid | Identificador técnico (GUID) que define los días de crédito. |
+| paymentMethodId | Guid | Identificador (GUID) que indica cómo suele pagar el proveedor. |
+| irs1099Code | Text[50] | Específico para la localización de EE. UU. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+### Maestro de Unidades de Medida
+
+El maestro de unidades contiene toda la información relacionada con todas las unidades de medidas utilizadas en los artículos registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/api/v2.0/companies({companyId})/unitsOfMeasure",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado de unidades de medida (Sincronización Manual)**
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{TenantID}/{enviromentName}/api/v2.0/companies({companyId})/unitsOfMeasure
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles:**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/unitsOfMeasure/$entity",
+    "@odata.etag": "W/\"JzIwOzExODk2NTgyNjA1MDcwOTE1NjE4MTswMDsn\"",
+    "id": "4acfdbef-5021-f011-9af7-002248dfda48",
+    "code": "BOTELLA",
+    "displayName": "Botella",
+    "internationalStandardCode": "BOTELLA",
+    "symbol": "",
+    "lastModifiedDateTime": "2025-04-24T21:13:43.817Z"
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de unidad. |
+| code | Text[10] | Es el identificador que el usuario ve y utiliza. |
+| displayName | Text[50] | El nombre descriptivo de la unidad. |
+| internationalStandardCode | Text[50] | Código estándar internacional de la unidad. |
+| symbol | Text[10] | El símbolo gráfico de la unidad. |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+### Maestro de Transportistas
+
+El maestro de transportistas contiene toda la información relacionada con el listado de transportistas registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": UrlNotificationId,
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/shippingAgents",
+  "clientState": ""
+}
+```
+
+<Aside type="danger">
+La suscripción de transportistas se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+
+#### Endpoint para Listado de transportistas (Sincronización Manual)
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({companyId})/ShippingAgents
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos disponibles**
+
+```json
+{
+  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/ODataV4/$metadata#Company('41cc1c74-5021-f011-9af7-000d3ac04986')/ShippingAgents",
+  "value": [
+    {
+      "@odata.etag": "W/\"JzIwOzE3ODEwMDE1NTU4ODg0NjM0OTc2MTswMDsn\"",
+      "id": "b057d38a-c006-f111-8405-7ced8da9239b",
+      "code": "ALEX",
+      "name": "Alexander",
+      "lastName": "",
+      "companyName": "",
+      "nitCompany": "",
+      "plate": "",
+      "accountNo": "",
+      "lastModifiedDateTime": "2026-02-26T14:30:23.28Z"
+    }
+  ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+|---|---|---|
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag |  | Un identificador de versión del registro. |
+| id | Guid | ID del Transportista. |
+| code | Text[10] | Es el código del transportista. |
+| name | Text[50] | Nombre del transportista. |
+| lastName | Text[50] | Apellido del transportista |
+| companyName | Text[100] | Nombre de compañía |
+| nitCompany | Text[50] | Rif de compañía |
+| plate | Text[20] | Placa del vehículo |
+| accountNo | Text[30] | Número de cuenta |
+| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+### Maestro de Códigos de motivo
+El maestro de código motivo contiene toda la información relacionada con el listado de códigos de motivo utilizados en ajustes de inventario y transferencia de pedidos.
+
+**Suscripción del recurso por webhook**
+
+
+```
+{
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/reasonCodes",
+  "clientState": ""
+}
+```
+
+**Endpoint para Listado (Sincronización Manual)**
+
+GET 
+
+```
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
+```
+
+Content-Type: application/json 
+Authorization: Bearer &#123;access_token&#125;
+
+<Aside type="danger">
+La suscripción de código de motivo se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+ **Datos disponibles**
+
+```
+{
+  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/ODataV4/$metadata#Company('41cc1c74-5021-f011-9af7-000d3ac04986')/ReasonCodes",
+  "value": [
+    {
+      "@odata.etag": "W/\"JzE4OzU4Nzk3ODU4NjA2OTE2OTgyNTE7MDA7Jw==\"",
+      "code": "ACTIVO",
+      "description": "CODIGO ACTIVO",
+      "status": true,
+      "adjustment": false,
+      "accountNo": "",
+      "itemTransfer": true,
+      "inTransit": false,
+      "id": "3a0342ee-4013-f111-8341-002248d31bd2",
+      "systemCreatedAt": "2026-02-26T18:28:31.28Z",
+      "systemModifiedAt": "2026-02-26T18:38:34.72Z"
+    }
+  ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+|---|---|---|
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag |  | Un identificador de versión del registro. |
+| id | Guid | ID del recurso. |
+| code | Text[10] | Código de motivo |
+| description | Text[50] | Descripción del motivo. |
+| status | Boolean | Estado del código de motivo |
+| adjustment | Boolean | Si está activo para ajuste de inventario |
+| accountNo | Text[20] | Cuenta contable asociada |
+| itemTransfer | Boolean | Si está activo para artículos en transferencias |
+| inTransit | Boolean | Si está activo para transferencia en tránsito |
+| systemCreatedAt | Datetime | Marca de tiempo (UTC) de la fecha en que se registró el código de motivo |
+| systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+
+
+
