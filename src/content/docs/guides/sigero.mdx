@@ -13,10 +13,51 @@ import { Aside } from '@astrojs/starlight/components';
 
 #### Lineamiento de Integración
 
-**Herramientas de Consumo**: El acceso podrá realizarse mediante herramientas de prueba de APIs (como Postman), scripts de administración o desde la propia interfaz de consulta de Sigero, siempre bajo intervención humana.
+**Garantía de Entrega Asíncrona**: Sigero depositará las transacciones en colas de mensajería independientes de la disponibilidad inmediata de Business Central. Esto asegura que la operación nunca se pierda por saturación del ERP 
 
+**Confirmación de Recepción en Cola**: El servicio de mensajería emitirá un acuse de recibo inmediato cada vez que una inserción sea depositada correctamente en la cola. Esta notificación actúa como una garantía de persistencia, permitiendo que el sistema externo confirme el envío y libere la transacción.
+
+**Identificación Única de Mensajes y Trazabilidad**: Cada mensaje depositado en la cola recibirá un identificador único global generado por la infraestructura de mensajería. Este ID servirá como la referencia de seguimiento compartida entre ambos sistemas, permitiendo realizar consultas posteriores sobre el estado de la integración (En espera, Procesado o Fallido).
+
+**Gestión de Bloqueos y Resiliencia**: Ante bloqueos temporales de tablas en Business Central, la lógica de integración aplicará ciclos de reintento automático con tiempos de espera exponenciales. El proceso solo se dará por fallido tras agotar los intentos configurados, protegiendo la continuidad operativa.
+
+**Aislamiento y Trazabilidad de Errores**: Aquellas transacciones que contengan errores lógicos o de datos serán desviadas a una cola de mensajes fallidos para su inspección. Esto permite que el resto del flujo continúe operando sin interrupciones.
+
+![Pantalla para el diario de productos](../../../assets/sigero/3.png)
+
+### Sincronización de Maestros vía Webhooks
+
+Es un mecanismo que envía una notificación HTTP automática a una URL cada vez que ocurre un cambio (Crear, Modificar o Eliminar) en una tabla de Business Central. 
+Business Central avisa proactivamente al ecosistema en el segundo exacto en que se crea o modifica un registro, eliminando la necesidad de consultas constantes (polling) que ralentizan el ERP.
+
+Entidades a utilizar
+
+- **Artículos.**
+- **Unidades de Medida.**
+- **Clientes.**
+- **Proveedores.**
+- **Almacenes.**
+- **Transportistas.**
+- **Códigos de motivo.**
+
+#### Lineamiento de Integración
+
+**Notificación de Eventos en Business Central**:  En el momento en que se produzca una creación o modificación en Business Central, el Webhook disparará una notificación hacia la Sigero.
+**Vinculación de Identidades (ID Único)**: Todo registro guardado en Sigero (Clientes, Artículos, Proveedores, etc.) debe contener obligatoriamente el ID del registro original de Business Central (SystemId/GUID)
+**Suscripción por Entidad**: Se configurará un Webhook independiente por cada entidad maestra (por compañía y ambiente).
+**Renovación de suscripción**: El sistema debe enviar una petición a la API de suscripciones de Business Central para actualizar la fecha y hora de expiración de cada Webhook activo.
+**Gestión de Seguridad**: Sigero debe validar el token o Client State incluido en el Webhook para confirmar que la petición proviene exclusivamente de nuestra instancia de Business Central.
+
+### Consumo Manual vía API OData/REST
+
+Complementando la arquitectura de eventos, habilitaremos el consumo manual de datos a través de las APIs estándar de Business Central (v2.0). El acceso está protegido mediante el protocolo de autorización moderno de Microsoft, garantizando que solo aplicaciones registradas en Azure AD puedan consumir los datos.
+
+####  Lineamiento de Integración
+
+**Herramientas de Consumo**: El acceso podrá realizarse mediante herramientas de prueba de APIs (como Postman), scripts de administración o desde la propia interfaz de consulta de Sigero, siempre bajo intervención humana.
 **Autenticación Individual**: Cada consulta debe estar respaldada por un token de acceso seguro (OAuth 2.0), asegurando que solo personal autorizado pueda "leer" los datos del ERP.
-Restricción de Operaciones: Por seguridad, el acceso manual vía API se configurará preferentemente en modo **"Solo Lectura"** (GET) para las entidades maestras. Cualquier inserción de datos deberá seguir el canal oficial del Service Bus para mantener la trazabilidad.
+**Restricción de Operaciones**: Por seguridad, el acceso manual vía API se configurará preferentemente en modo "Solo Lectura" (GET) para las entidades maestras. Cualquier inserción de datos deberá seguir el canal oficial del Service Bus para mantener la trazabilidad.
+
 
 ## Puntos Previos
 
@@ -35,7 +76,8 @@ Antes de poder utilizar las apis, Webhooks e integrar aplicaciones externas con 
 2.	Credenciales OAuth 2.0 
     -	**Client ID (Aplicación ID)**: Identificador de la aplicación registrada
     -	**Client Secret**: Clave secreta de la aplicación.
-
+3. Credenciales de Azure AD 
+    -	Shared Access Signature (SAS) o certificado para autenticación segura.
 3.	Permisos y alcances (Scopes) 
     -   Definir los permisos necesarios para acceder a las Apis
     -	Ejemplo: https://api.businesscentral.dynamics.com/.default
@@ -296,19 +338,17 @@ Parámetros de la suscripción:
 | @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
 | @odata.etag | String | Identificador de versión del registro para el control de concurrencia optimista. |
 | subscriptionId | GUID | Identificador único de la suscripción de Webhook creada. |
-| notificationUrl | String (URL) | Dirección URL donde Business Central enviará las notificaciones. |
-| resource | String | Ruta de la API que define el recurso monitoreado. |
-| timestamp | BigInt | Número interno de control de versiones de la base de datos SQL. |
+| notificationUrl | Text[250] | Dirección URL donde Business Central enviará las notificaciones. |
+| resource | Text[250] | Ruta de la API que define el recurso monitoreado. |
+| timestamp | bigint | Número interno de control de versiones de la base de datos SQL. |
 | userId | GUID | Identificador único del usuario de Business Central que originó la suscripción. |
 | lastModifiedDateTime | DateTime | Fecha y hora de la última modificación de los parámetros de suscripción. |
-| clientState | String | Secreto compartido para validar la autenticidad de las notificaciones. |
+| clientState | Text[250] | Secreto compartido para validar la autenticidad de las notificaciones. |
 | expirationDateTime | DateTime | Fecha y hora exacta en la que el Webhook dejará de estar activo. |
 | systemCreatedAt | DateTime | Marca de tiempo exacta de la creación del registro en el sistema. |
 | systemCreatedBy | GUID | Identificador del usuario o servicio que creó el registro. |
 | systemModifiedAt | DateTime | Marca de tiempo de la última modificación registrada por el sistema. |
 | systemModifiedBy | DateTime | Identificador del usuario o servicio que realizó la última modificación en el sistema. | 
-
-
 
 ### Renovación de suscripciones:
 
@@ -318,19 +358,17 @@ Las suscripciones expiran máximo en 3 días, por lo que debes renovarlas perió
    Cuando envías la solicitud para renovar, Business Central te exige demostrar que conoces la versión actual del registro que quieres modificar. para eso se utiliza @odata.etag de la suscripción.
 </Aside>
 
-export const renove = `
+```json
 PATCH 
-{{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})}} 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})
 Content-Type: application/json 
 If-Match: @odata.etag (o el ETag específico de la suscripción) 
 Authorization: Bearer {access_token}
-`
-
-<Code code={renove} lang="js" />
+```
 
 **Respuesta esperada (JSON)**
 
-export const renove_result = `
+```json
 {
     "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#subscriptions/$entity",
     "@odata.etag": "W/\"JzE5Ozg3NjQ5MTcyMDMyMDAwODMwNjcxOzAwOyc=\"",
@@ -347,9 +385,7 @@ export const renove_result = `
     "systemModifiedAt": "2026-02-05T19:09:48.653Z",
     "systemModifiedBy": "79d10a1b-ea16-483b-964d-5d547971cf47"
 }
-`
-
-<Code code={renove_result} lang="js" />
+```
 
 **Campos de la respuesta**
 
@@ -378,16 +414,14 @@ export const renove_result = `
 
 Para listar las suscripciones activas en el entorno de Business Central realiza una petición GET al recurso de `subscriptions`.
 
-export const list_subscriptions = `
+```
 GET {{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions}} 
 Authorization: Bearer {access_token}
-`;
-
-<Code code={list_subscriptions} lang="js" />
+```
 
 **Respuesta esperada (JSON)**
 
-export const list_subscriptions_result = `
+```json
 {
   "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#subscriptions",
   "value": [
@@ -408,9 +442,7 @@ export const list_subscriptions_result = `
     }
   ]
 }
-`;
-
-<Code code={list_subscriptions_result} lang="js" />
+```
 
 **Campos de la respuesta**
 
@@ -432,20 +464,17 @@ export const list_subscriptions_result = `
 | systemModifiedAt | DateTime | Marca temporal de la última modificación técnica registrada. |
 | systemModifiedBy | GUID | Identificador del usuario o servicio que realizó la última modificación. |
 
-
 ### Eliminar una suscripción
 
 Para eliminar la suscripción que tienes activa, debes realizar una petición DELETE apuntando específicamente al subscriptionId que tienes en tu JSON.
 
-export const deleteSuscription = `
-    DELETE 
-    {{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})}} 
-    Authorization: Bearer {access_token} 
-    Content-Type: application/json 
-    If-Match: @odata.etag (o el ETag específico de la suscripción)
-`;
-
-<Code code={deleteSuscription} lang="js" />
+```json
+DELETE 
+https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})
+Authorization: Bearer {access_token} 
+Content-Type: application/json 
+If-Match: @odata.etag (o el ETag específico de la suscripción)
+```
 
 Cuando lanzas el DELETE con éxito, la respuesta de Business Central no contiene texto, solo un código de estado:
 
@@ -456,8 +485,8 @@ Cuando lanzas el DELETE con éxito, la respuesta de Business Central no contiene
 
 Cada notificación enviada al suscriptor (notificationUrl) puede contener múltiples notificaciones de diferentes suscripciones. Aquí tienes un ejemplo de carga útil de notificación:
 
-export const notificationsSuscriptions = `
-    {
+```json
+{
   "value": [
     {
       "subscriptionId": "webhookItemsId",
@@ -493,9 +522,7 @@ export const notificationsSuscriptions = `
     }
   ]
 }
-`;
-
-<Code code={notificationsSuscriptions} lang="js" />
+```
 
 El parámetro "changeType" indica el tipo de cambio:
 - Created: Se creo un nuevo registro
@@ -510,11 +537,242 @@ El parámetro "changeType" indica el tipo de cambio:
 
 ## Recepción de Almacenes
 
-## Pedidos de Transferencia
-**Encabezado** 
-**Datos disponibles**
+### Obtener lista de Recepciones de Almacén
 
-export const transfer_header = `
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": UrlNotificationId,
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/warehouseReceipts",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de recepciones se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+**Consumir Endpoints (Manual)**
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/DEMO/api/virtualOfficeGroup/integration/v1.0/companies(db22931c-25f2-f011-8405-000d3a88d306)/transferOrders?$expand=transferOrderLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+### Creación de Recepciones de Almacenes
+
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "locationCode": "PRINCIPAL", //Codigo de Almacen
+  "postingDate": "2026-02-10", // Fecha de Registro
+  "sortingMethod": "Item", // Metodo de Orden
+  "shippingAgentCode": "ALEX", //Codigo del transportista
+  "warehouseReceiptLines": [
+    { 
+      "sourceDocument": "Purchase Order", // Tipo de documento de origen
+      "sourceNo": "C-PDA0000273", // Numero de documento de origen
+      "sourceLineNo": 50000, // Numero de linea del documento de origen
+      "itemNo": "PROD005", // Codigo del articulo
+      "unitMeasureCode": "KG", // Unidad de medida
+      "quantity": 10 // Cantidad a recibir
+    },
+    { 
+      "sourceDocument": "Purchase Order", // Tipo de documento de origen
+      "sourceNo": "C-PDA0000273", // Numero de documento de origen
+      "sourceLineNo": 50000, // Numero de linea del documento de origen
+      "itemNo": "PROD003", // Codigo del articulo
+      "unitMeasureCode": "KG", // Unidad de medida
+      "quantity": 10 // Cantidad a recibir
+    }
+  ]
+}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/warehouseReceipts/$entity",
+    "@odata.etag": "W/\"JzE5OzE2MDIwNTUwMDg1MTM5NjkzODIxOzAwOyc=\"",
+    "id": "418de961-8125-f111-bec2-7ced8da8a20f",
+    "documentNo": "A-REC0000367",
+    "locationCode": "PRINCIPAL",
+    "noSeries": "A-RECEPCIÓN",
+    "zoneCode": "",
+    "binCode": "",
+    "postingDate": "2026-03-21",
+    "vendorShipmentNo": "",
+    "shippingAgentCode": "ALEX",
+    "plate": "",
+    "sortingMethod": "Item",
+    "assignedUserID": "",
+    "systemModifiedAt": "2026-03-21T23:55:05.957Z",
+    "warehouseReceiptLines": [
+        {
+            "@odata.etag": "W/\"JzIwOzE2OTU1NTk0NjkwNjgzMjQ5MTQ2MTswMDsn\"",
+            "id": "428de961-8125-f111-bec2-7ced8da8a20f",
+            "documentNo": "A-REC0000367",
+            "locationCode": "",
+            "lineNo": 1000,
+            "itemNo": "PROD005",
+            "description": "NITRATO DE SODIO",
+            "quantity": 10.00000,
+            "qtyReceive": 10.00000,
+            "qtyOutstanding": 10.00000,
+            "qtyReceived": 0,
+            "unitMeasureCode": "KG",
+            "sourceType": 39,
+            "sourceSubtype": "1",
+            "sourceNo": "C-PDA0000273",
+            "sourceLineNo": 50000,
+            "sourceDocument": "Purchase_x0020_Order",
+            "status": " ",
+            "systemModifiedAt": "2026-03-21T23:55:06.037Z",
+            "sortingSequenceNo": 0
+        },
+        {
+            "@odata.etag": "W/\"JzIwOzE1NzY3MzExOTA3OTA1MDA2NjI4MTswMDsn\"",
+            "id": "438de961-8125-f111-bec2-7ced8da8a20f",
+            "documentNo": "A-REC0000367",
+            "locationCode": "",
+            "lineNo": 2000,
+            "itemNo": "PROD003",
+            "description": "CARNE DE AVE",
+            "quantity": 10.00000,
+            "qtyReceive": 10.00000,
+            "qtyOutstanding": 10.00000,
+            "qtyReceived": 0,
+            "unitMeasureCode": "KG",
+            "sourceType": 39,
+            "sourceSubtype": "1",
+            "sourceNo": "C-PDA0000273",
+            "sourceLineNo": 50000,
+            "sourceDocument": "Purchase_x0020_Order",
+            "status": " ",
+            "systemModifiedAt": "2026-03-21T23:55:06.073Z",
+            "sortingSequenceNo": 0
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos. |
+| @odata.etag |  | Un identificador de versión del registro. |
+| id | Guid | ID de la recepción de almacén creada. |
+| documentNo | Text[20] | Número de documento de la recepción de almacén.
+| locationCode | Text[20] | Código del almacén donde se está realizando la recepción. |
+| noSeries | Text[20] | Serie de numeración utilizada para generar el número de documento. |
+| zoneCode | Text[20] | Código de la zona dentro del almacén (si aplica). |
+| binCode | Text[20] | Código de la ubicación específica dentro del almacén (si aplica). |
+| postingDate | Date | Fecha de registro de la recepción. |
+| vendorShipmentNo | Text[20] | Número de envío del proveedor (si aplica).
+| shippingAgentCode | Text[20] | Código del agente de transporte asociado a la recepción. |
+| plate | Text[20] | Número de placa del vehículo de transporte (si aplica).
+| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas de la recepción. |
+| assignedUserID | Text[20] | ID del usuario asignado para gestionar la recepción (si aplica). |
+| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
+
+
+**Campos de la respuesta (Líneas)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| sourceDocument | Text[50] | Tipo de documento de origen relacionado con la línea de recepción (por ejemplo, "Purchase Order"). |
+| sourceNo | Text[50] | Número del documento de origen que respalda la línea de recepción. |
+| sourceLineNo | Integer | Número de línea específico dentro del documento de origen. | 
+| itemNo | Text[50] | Código del artículo que se está recibiendo. |
+| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad recibida (por ejemplo, "KG"). |
+| quantity | Decimal | Cantidad del artículo que se está recibiendo. |
+
+Para poder visualizarlo, el usuario debe navegar a la pantalla de **Recepción Almacén.** Desde esta ventana, es posible visualizar y gestionar todos los documentos de entrada pendientes de recepción de almacén.
+
+**Listado de recepciones de almacén**
+
+![Pantalla listado de recepcion de almacen](../../../assets/sigero/4.png)
+
+** Detalle de la recepción de almacén**
+
+![Recepción de almacén](../../../assets/sigero/5.png)
+
+## Pedidos de Transferencia
+
+### Obtener lista de Pedidos de Transferencia
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": UrlNotificationId,
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/transferOrders",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de transferencias se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+### Creación de Pedidos de Transferencia
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+    "transferFromCode": "ALMACEN 1", // Codigo del almacen origen
+    "transferToCode": "ALMACEN 2", // Codigo del almacen destino
+    "directTransfer": false, // Define si el movimiento es directo o en transito
+    "transferOrderLines": [
+        {   
+            "itemNo": "MPPA01090", // Codigo del articulo
+            "qty": 10, // Cantidad a transferir
+            "outstandingQuantity": 10, // Cantidad pendiente por transferir
+            "unitMeasureCode": "KG" // Unidad de medida
+        },
+        {
+            "itemNo": "MPPA01090", // Codigo del articulo
+            "qty": 10, // Cantidad a transferir
+            "outstandingQuantity": 10, // Cantidad pendiente por transferir
+            "unitMeasureCode": "KG" // Unidad de medida
+        }
+    ]
+}
+```
+
+**Datos obtenidos**
+
+```json
 {
       "@odata.etag": "W/\"JzIwOzEyMTgyNTIwNDM2NzYxNTg2OTkzMTswMDsn\"",
       "No": "I-TRAN0000056",
@@ -549,11 +807,28 @@ export const transfer_header = `
       "shippingAgentCode": "",
       "plate": "",
       "systemCreatedAt": "2026-02-12T19:45:07.76Z",
-      "systemModifiedAt": "2026-02-12T19:47:30.867Z"
+      "systemModifiedAt": "2026-02-12T19:47:30.867Z",
+      "transferOrderLines": [
+        {
+          "@odata.etag": "W/\"JzE5OzI5MDEzMzkwNDI5NjU0NjExNjcxOzAwOyc=\"",
+          "documentNo": "I-TRAN0000056",
+          "id": "73666881-4b08-f111-8405-000d3ac0ae45",
+          "lineNo": 10000,
+          "itemNo": "PROD001",
+          "qty": 30,
+          "description": "HARINA DE MAIZ ",
+          "unitOfMeasure": "Kilo",
+          "qtytoShip": 30,
+          "qtytoReceive": 0,
+          "qtyShipped": 0,
+          "qtyReceived": 0,
+          "status": "Open",
+          "unitMeasureCode": "KG",
+          "systemModifiedAt": "2026-02-12T19:47:30.85Z"
+        }
+      ]
     }
-`;
-
-<Code code={transfer_header} lang="js" />
+```
 
 **Campos de la respuesta (Encabezado)**
 
@@ -585,41 +860,15 @@ export const transfer_header = `
 | systemCreatedAt | Datetime | Marca de tiempo que indica el momento exacto de la creación del registro. |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
-**Líneas** 
-
-**Datos disponibles**
-
-export const transfer_lines = `
-{
-      "@odata.etag": "W/\"JzE5OzI5MDEzMzkwNDI5NjU0NjExNjcxOzAwOyc=\"",
-      "documentNo": "I-TRAN0000056",
-      "id": "73666881-4b08-f111-8405-000d3ac0ae45",
-      "lineNo": 10000,
-      "itemNo": "PROD001",
-      "qty": 30,
-      "description": "HARINA DE MAIZ ",
-      "unitOfMeasure": "Kilo",
-      "qtytoShip": 30,
-      "qtytoReceive": 0,
-      "qtyShipped": 0,
-      "qtyReceived": 0,
-      "status": "Open",
-      "unitMeasureCode": "KG",
-      "systemModifiedAt": "2026-02-12T19:47:30.85Z"
- }
-`;
-
-<Code code={transfer_lines} lang="js" />
-
 **Campos de la respuesta (Líneas)**
 
 | Nombre | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
 | @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
+| @odata.etag | | Un identificador de versión del registro. |
 | id | Guid | ID de la línea. |
 | lineNo | Integer | Es el identificador secuencial de la línea. |
-| itemNo | Text | El código o SKU del producto en tu inventario. |
+| itemNo |  | El código o SKU del producto en tu inventario. |
 | description | Text | El nombre comercial del producto. |
 | qty | Decimal/Integer | La cantidad total que se planea transferir. |
 | qtytoShip | Decimal/Integer | Cantidad pendiente por enviar. |
@@ -631,34 +880,274 @@ export const transfer_lines = `
 | unitMeasureCode | Text | Código de la unidad de medida (ej. KG). |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
+### Creacion de Envios de Almacén
+
+En Business Central, la creación de un Envío de Almacén a partir de un Pedido de Transferencia no es automática por el simple hecho de registrar, sino que depende estrictamente de la jerarquía de configuración en la ficha del almacén de origen.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "environment":{environment}, // Nombre del entorno
+  "companyName":{companyID}, //codigo de la compañia
+  "transferOrderID": "8db86854-4b08-f111-8405-000d3ac0ae45", // ID del pedido de transferencia
+}
+```
+
+**Datos Obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/warehouseShipments/$entity",
+    "@odata.etag": "W/\"JzE5OzU3ODY5MDI5NDgxOTI4MDc4MDcxOzAwOyc=\"",
+    "id": "6365b89b-171e-f111-8405-7ced8da8a20f",
+    "locationCode": "ALMACEN 1",
+    "no": "A-ENV00003",
+    "sortingMethod": "None",
+    "zoneCode": "",
+    "documentStatus": "Partially_x0020_Shipped",
+    "postingDate": "2025-11-09",
+    "shippingAgentCode": "",
+    "shipmentMethodCode": "",
+    "status": "Released",
+    "systemModifiedAt": "2026-03-12T13:35:39.263Z",
+    "warehouseShipmentLines": [
+        {
+            "@odata.etag": "W/\"JzIwOzE2Njc2MTY5MDUwMzQyMDgyNzAyMTswMDsn\"",
+            "id": "6465b89b-171e-f111-8405-7ced8da8a20f",
+            "no": "A-ENV00003",
+            "lineNo": 10000,
+            "sourceType": 5741,
+            "sourceSubtype": "0",
+            "sourceDocument": "Outbound_x0020_Transfer",
+            "sourceLineNo": 10000,
+            "quantity": 100,
+            "itemNo": "MPPA01090",
+            "description": "Alimento para Pollos",
+            "unitMeasureCode": "KG",
+            "qtyperUnitMeasure": 1
+        }
+    ]
+}
+```
+**campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID del envío de almacén creado. |
+| no | Text[20] | Número de documento del envío de almacén. |
+| locationCode | Text[20] | Código del almacén desde el cual se realiza el envío. |
+| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas del envío. |
+| zoneCode | Text[20] | Código de la zona dentro del almacén (si aplica). |
+| documentStatus | Text[20] | Estado del documento (ej. "Partially Shipped"). |
+| postingDate | Date | Fecha de registro del envío. |
+| shippingAgentCode | Text[20] | Código del agente de transporte asociado al envío. |
+| shipmentMethodCode | Text[20] | Código del método de envío utilizado. |
+| status | Text[20] | Estado del envío (ej. "Released"). |
+| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
+
+
+**Campos de la respuesta (Líneas)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de la línea del envío. |
+| lineNo | Integer | Número de línea dentro del envío. |
+| sourceType | Integer | Código que representa el tipo de documento de origen |
+| sourceSubtype | Text[10] | Subtipo del documento de origen (si aplica). |
+| sourceDocument | Text[50] | Tipo de documento de origen (ej. "Outbound Transfer"). |
+| sourceLineNo | Integer | Número de línea del documento de origen que respalda esta línea del envío. |
+| itemNo | Text[50] | Código del artículo que se está enviando. |
+| description | Text[100] | Nombre comercial del artículo. |
+| quantity | Decimal | Cantidad del artículo que se está enviando. |
+| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad enviada |
+| qtyperUnitMeasure | Decimal | Cantidad de unidades por cada unidad de medida (si aplica). |
+
+al momento de lanzar esta peticion creara automaticamente el envio del almacen del pedido de transferencia, siempre y cuando en la configuración del almacén de origen, se tenga seleccionado que el proceso de transferencias genere envíos de almacén.
+
+Se podra visualizar el envío de almacén creado desde la pantalla de **Envios de Almacén** en Business Central, donde se podrán gestionar los envíos generados a partir de los pedidos de transferencia.
+
+![Envios de almacén](../../../assets/sigero/6.png)
+
+![Detalle del envío de almacén](../../../assets/sigero/7.png)
+
+### Creacion Picking de Almacén
+
+En business central, la creación de un Picking de Almacén a partir de un Envío de Almacén no es automática por el simple hecho de registrar, sino que depende estrictamente de la jerarquía de configuración en la ficha del almacén de origen.
+
+El picking de almacen se crear a partir de cada linea del envio de almacen, por lo que para crear el picking de almacen se debe consumir el mismo endpoint que para la creación del envio de almacen, pero enviando en el body la información de la linea del pedido de transferencia y no del encabezado.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "environment":{environment}, // Nombre del entorno
+  "companyName":{companyID}, //codigo de la compañia
+  "warehouseShipmentLineID": "8db86854-4b08-f111-8405-000d3ac0ae45", // ID del linea del envio de almacen
+}
+```
+
+**Datos Obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3ac04986)/warehousePickings/$entity",
+    "@odata.etag": "W/\"JzE5OzU3ODY5MDI5NDgxOTI4MDc4MDcxOzAwOyc=\"",
+    "id": "6365b89b-171e-f111-8405-7ced8da8a20f",
+    "locationCode": "ALMACEN 1",
+    "no": "A-PIC00003",
+    "sortingMethod": "None",
+    "sourceDocument": "Outbound_x0020_Transfer",
+    "sourceno": "I-TRAN0000056",
+    "postingDate": "2025-11-09",
+    "shipmentDate": "2025-11-09",
+    "systemModifiedAt": "2026-03-12T13:35:39.263Z",
+    "warehouseActivityLines": [
+        {
+            "@odata.etag": "W/\"JzIwOzE2Njc2MTY5MDUwMzQyMDgyNzAyMTswMDsn\"",
+            "id": "6465b89b-171e-f111-8405-7ced8da8a20f",
+            "no": "A-PIC00003",
+            "lineNo": 10000,
+            "sourceType": 5741,
+            "sourceSubtype": "0",
+            "sourceDocument": "Outbound_x0020_Transfer",
+            "sourceLineNo": 10000,
+            "quantity": 100,
+            "itemNo": "MPPA01090",
+            "description": "Alimento para Pollos",
+            "unitMeasureCode": "KG",
+            "qtyperUnitMeasure": 1
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID del picking de almacén creado. |
+| no | Text[20] | Número de documento del picking de almacén. |
+| locationCode | Text[20] | Código del almacén desde el cual se realiza el picking. |
+| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas del picking. |
+| sourceDocument | Text[50] | Tipo de documento de origen (ej. "Outbound Transfer"). |
+| sourceno | Text[20] | Número del documento de origen que respalda este picking. |
+| postingDate | Date | Fecha de registro del picking. |
+| shipmentDate | Date | Fecha de envío asociada al picking. |
+| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
+
+
+**Campos de la respuesta (Líneas)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de la línea del picking. |
+| lineNo | Integer | Número de línea dentro del picking. |
+| sourceType | Integer | Código que representa el tipo de documento de origen |
+| sourceSubtype | Integer | Subtipo del documento de origen (si aplica). |
+| sourceDocument | Text[20] | Tipo de documento de origen. |
+| sourceLineNo | Integer | Número de línea del documento de origen que respalda esta línea del picking. |
+| itemNo | Text[20] | Código del artículo que se está preparando para envío. |
+| description | Text[100] | Nombre comercial del artículo. |
+| quantity | Decimal | Cantidad del artículo que se está preparando para envío. |
+| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad del picking. |
+| qtyperUnitMeasure | Decimal | Cantidad de unidades por cada unidad de medida. |
+
+al momento de lanzar esta peticion creara automaticamente el picking del almacen del envio de transferencia, siempre y cuando en la configuración del almacén de origen, se tenga seleccionado que el proceso de transferencias genere envíos de almacén.
+
+Se podra visualizar el picking de almacén creado desde la pantalla de **Pickings de Almacén** en Business Central, donde se podrán gestionar los pickings generados a partir de los envíos de transferencia.
+
+![Pickings de almacén](../../../assets/sigero/8.png)
+
+![Detalle del picking de almacén](../../../assets/sigero/9.png)
+
 ## Ajuste de Inventario
 
-**Datos disponibles:**
+### Configuración de Ajuste de inventario
 
-export const inventory_adjustment = `
+Para la creacion de ajuste de inventario a partir de la API, 
+se debe configurar la plantilla y sección de diario a utilizar para crear los asientos en el
+ diario de productos.Se pueden como **Configuración Ajuste de inventario (SIGERO)** en business central.
+
+![Pantalla para la configuración de seccion de diario](../../../assets/sigero/1.png)
+
+<Aside type="note">
+  Este proceso está intrínsecamente vinculado a la Configuración de Plantilla de Diario General de Business Central.
+</Aside>
+
+
+### Ajuste positivo
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
 {
-            "@odata.etag": "W/\"JzE5OzUyNzU3Nzg0NzIwNzgxMTYwNjkxOzAwOyc=\"",
-            "journalId": "af6ea8d5-2c08-f111-8405-002248d31bd2",
-            "journalTemplateName": "PRODUCTO",
-            "journalBatchName": "GENERICO",
-            "lineNo": 20000,
-            "itemNo": "PROD001",
-            "description": "HARINA DE MAIZ ",
-            "entryType": "Positive Adjmt.",
-            "sourceNo": "",
-            "documentNo": "4874",
-            "locationCode": "PRINCIPAL",
-            "quantity": 40,
-            "invoicedQuantity": 40,
-            "unitAmount": 55222.331,
-            "unitCost": 55222.331,
-            "amount": 2208893.24,
-            "discountAmount": 0,
-            "systemModifiedAt": "2026-02-12T16:06:52.377Z"
+    "environment":{environment}, // Nombre del entorno
+    "companyName":{companyID}, //codigo de la compañia 
+    "itemNo": "1002", // Codigo del Producto
+    "entryType": "Positive Adjmt.", // Tipo de ajuste: Positivo
+    "documentNo": "4874", //Numero de documento
+    "locationCode": "PRINCIPAL", //Codigo el Almacen
+    "quantity": 40 //Cantidad a ajustar
 }
-`;
+```
 
-<Code code={inventory_adjustment} lang="js" />
+### Ajuste Negativo
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+    "environment":{environment}, // Nombre del entorno
+    "companyName":{companyID}, //codigo de la compañia
+    "itemNo": "1002", // Codigo del Producto
+    "entryType": "Negative Adjmt.", //Tipo de ajuste: Negativo
+    "documentNo": "4874", //Numero de documento a vincular con el ajuste
+    "locationCode": "PRINCIPAL", //Codigo el Almacen
+    "quantity": 40 //Cantidad a ajustar
+}
+```
+
+**Datos obtenidos**
+
+```json
+{
+  "@odata.etag": "W/\"JzE5OzUyNzU3Nzg0NzIwNzgxMTYwNjkxOzAwOyc=\"",
+  "journalId": "af6ea8d5-2c08-f111-8405-002248d31bd2",
+  "journalTemplateName": "PRODUCTO",
+  "journalBatchName": "GENERICO",
+  "lineNo": 20000,
+  "itemNo": "PROD001",
+  "description": "HARINA DE MAIZ ",
+  "entryType": "Positive Adjmt.",
+  "sourceNo": "",
+  "documentNo": "4874",
+  "locationCode": "PRINCIPAL",
+  "quantity": 40,
+  "invoicedQuantity": 40,
+  "unitAmount": 55222.331,
+  "unitCost": 55222.331,
+  "amount": 2208893.24,
+  "discountAmount": 0,
+  "systemModifiedAt": "2026-02-12T16:06:52.377Z"
+}
+```
 
 **Campos de la respuesta**
 
@@ -683,13 +1172,27 @@ export const inventory_adjustment = `
 | discountAmount | Decimal | Valor monetario del descuento aplicado a la línea. |
 | systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
-## Consumo Órdenes de Compra
+### Asientos de diario en Business Central
+
+Los asientos de diario se pueden visualizar en la venta de **diario de productos**.
+
+**Listado de asientos de diario**
+
+![Pantalla para el diario de productos](../../../assets/sigero/2.png)
+
+<Aside type="note">
+ La revisión y registros de los asientos de diario seran realizados por el usuario de Business Central.
+</Aside>
+
+## Consumo Pedidos de Compra
+
+### Obtener lista de Pedidos de Compra
 
 **Suscripción de webhook**
 
-El consumo de órdenes de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
+El consumo de pedidos de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
 
-export const purchaseOrderWebhook = `
+```json
 POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
@@ -699,59 +1202,200 @@ Authorization: Bearer {access_token}
   "resource": "api/v2.0/companies({{companyId}})/purchaseOrders",
   "clientState": ""
 }
-`;
-
-<Code code={purchaseOrderWebhook} lang="js" />
+```
 
 **Consumir Endpoints**
 
 Para consultar manualmente las órdenes de compra, puedes consumir el endpoint estándar de Business Central.
 
-export const purchaseOrdersManual = `
-GET https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
 Content-Type: application/json
 Authorization: Bearer {access_token}
-`;
+```
 
-<Code code={purchaseOrdersManual} lang="js" />
-
-**Datos disponibles:**
+**Datos obtenidos**
 
 ```json
 {
-  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/$metadata#companies({{companyId}})/purchaseOrders",
-  "value": [
+  "@odata.etag": "W/\"JzIwOzE0OTk0MjAxMzgwMTQ2OTIxNzU4MTswMDsn\"",
+  "id": "f454e208-1222-f011-9af7-6045bd3b911d",
+  "number": "C-PDA0000262",
+  "orderDate": "2025-04-25",
+  "postingDate": "2025-04-25",
+  "vendorId": "3efbdd7d-da21-f011-9af7-000d3ac04986",
+  "vendorNumber": "C-PROV0000013",
+  "vendorName": "PROVEEDOR 4",
+  "payToName": "PROVEEDOR 4",
+  "payToVendorId": "3efbdd7d-da21-f011-9af7-000d3ac04986",
+  "payToVendorNumber": "C-PROV0000013",
+  "shipToName": "ALMACEN PRINCIPAL",
+  "shipToContact": "",
+  "buyFromAddressLine1": "",
+  "buyFromAddressLine2": "",
+  "buyFromCity": "",
+  "buyFromCountry": "",
+  "buyFromState": "",
+  "buyFromPostCode": "",
+  "payToAddressLine1": "",
+  "payToAddressLine2": "",
+  "payToCity": "",
+  "payToCountry": "",
+  "payToState": "",
+  "payToPostCode": "",
+  "shipToAddressLine1": "",
+  "shipToAddressLine2": "",
+  "shipToCity": "",
+  "shipToCountry": "",
+  "shipToState": "",
+  "shipToPostCode": "",
+  "shortcutDimension1Code": "",
+  "shortcutDimension2Code": "",
+  "currencyId": "7d2ee4e9-5021-f011-9af7-002248dfda48",
+  "currencyCode": "USD",
+  "pricesIncludeTax": false,
+  "paymentTermsId": "6f2ee4e9-5021-f011-9af7-002248dfda48",
+  "shipmentMethodId": "00000000-0000-0000-0000-000000000000",
+  "purchaser": "",
+  "requestedReceiptDate": "0001-01-01",
+  "discountAmount": 0,
+  "discountAppliedBeforeTax": true,
+  "totalAmountExcludingTax": 300,
+  "totalTaxAmount": 48,
+  "totalAmountIncludingTax": 348,
+  "fullyReceived": false,
+  "status": "Open",
+  "lastModifiedDateTime": "2025-04-25T20:17:52.347Z",
+  "purchaseOrderLines": [
     {
-      "id": "a10b670b-a931-49c9-8c89-fa574762ab2b",
-      "number": "OC-000001",
-      "vendorId": "8797deb4-5121-f011-9af7-002248dfda48",
-      "vendorNumber": "C-PROV0000008",
-      "vendorName": "PROVEEDOR 1",
-      "orderDate": "2026-02-12",
-      "postingDate": "2026-02-12",
-      "expectedReceiptDate": "2026-02-14",
-      "status": "Open",
-      "lastModifiedDateTime": "2026-02-12T16:06:52.377Z"
+        "@odata.etag": "W/\"JzE5OzcwMjk4MTM5NjI2MDU1MzExNjYxOzAwOyc=\"",
+        "id": "400ba948-1222-f011-9af7-6045bd3b911d",
+        "documentId": "f454e208-1222-f011-9af7-6045bd3b911d",
+        "sequence": 10000,
+        "itemId": "5be2c78d-0f22-f011-9af7-6045bd3b911d",
+        "accountId": "00000000-0000-0000-0000-000000000000",
+        "lineType": "Item",
+        "lineObjectNumber": "PROD007",
+        "description": "SULFATO DE SODIO",
+        "description2": "",
+        "unitOfMeasureId": "4fcfdbef-5021-f011-9af7-002248dfda48",
+        "unitOfMeasureCode": "KG",
+        "quantity": 300,
+        "directUnitCost": 1,
+        "discountAmount": 0,
+        "discountPercent": 0,
+        "discountAppliedBeforeTax": false,
+        "amountExcludingTax": 300,
+        "taxCode": "IVA 16",
+        "taxPercent": 16,
+        "totalTaxAmount": 48,
+        "amountIncludingTax": 348,
+        "invoiceDiscountAllocation": 0,
+        "netAmount": 300,
+        "netTaxAmount": 48,
+        "netAmountIncludingTax": 348,
+        "expectedReceiptDate": "2025-04-25",
+        "receivedQuantity": 295,
+        "invoicedQuantity": 0,
+        "invoiceQuantity": 295,
+        "receiveQuantity": 0,
+        "itemVariantId": "00000000-0000-0000-0000-000000000000",
+        "locationId": "79231df8-d921-f011-9af7-000d3ac04986"
     }
   ]
-}
+},
 ```
 
-**Campos de la respuesta**
+**Campos de la respuesta (Encabezado)**
 
-| Nombre | Tipo de dato | Descripción |
+| Nombre | Tipo | Descripción |
 | :--- | :--- | :--- |
-| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
-| id | Guid | Identificador único de la orden de compra. |
-| number | Code[20] | Número del documento de compra. |
-| vendorId | Guid | Identificador único del proveedor asociado. |
-| vendorNumber | Code[20] | Código del proveedor. |
-| vendorName | Text[100] | Nombre del proveedor. |
-| orderDate | Date | Fecha de emisión de la orden de compra. |
-| postingDate | Date | Fecha contable del documento. |
-| expectedReceiptDate | Date | Fecha estimada de recepción. |
-| status | Enum/Text | Estado actual de la orden. |
-| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
+| @odata.etag |  | Identificador de versión para control de concurrencia. |
+| id | GUID | Identificador único universal del registro. |
+| number | Text[20] | Códigoo pedido de compra |
+| orderDate | Date | Fecha de emisión del documento. |
+| postingDate | Date | Fecha contable del registro. |
+| vendorId | GUID | ID único del proveedor vinculado. |
+| vendorNumber | Text[20] | Código maestro del proveedor |
+| vendorName | Text[100] | Nombre o razón social del proveedor. |
+| payToName | Text[100] | Nombre de la entidad a la que se paga. |
+| payToVendorId | GUID | ID del proveedor receptor del pago. |
+| payToVendorNumber | Text[20] | Código del proveedor receptor del pago. |
+| shipToName | Text[100] | Nombre del destino de entrega. |
+| shipToContact | Text[100] | Persona de contacto en el punto de entrega. |
+| buyFromAddressLine1 | Text[100] | Dirección principal de compra. |
+| buyFromAddressLine2 | Text[50] | Dirección secundaria de compra. |
+| buyFromCity | Text[50] | Ciudad del proveedor. |
+| buyFromCountry | Text[10] | País del proveedor. |
+| buyFromState | Text[40] | Estado o provincia del proveedor. |
+| buyFromPostCode | Text[20] | Código postal del proveedor. |
+| payToAddressLine1 | Text[100] | Dirección de facturación (Línea 1). |
+| payToAddressLine2 | Text[50] | Dirección de facturación (Línea 2). |
+| payToCity | Text[50] | Ciudad de facturación. |
+| payToCountry | Text[20] | País de facturación. |
+| payToState | Text[40] | Estado de facturación. |
+| shipToAddressLine1 | Text[100] | Dirección de envío (Línea 1). |
+| shipToAddressLine2 | Text[50] | Dirección de envío (Línea 2). |
+| shipToCity | Text[30] | Ciudad de envío. |
+| shipToCountry | Text[20] | País de envío. |
+| shipToState | Text[40] | Estado de envío. |
+| shipToPostCode | Text[20] | Código postal de envío. |
+| shortcutDimension1Code | Text[20] | Código de dimensión contable 1. |
+| shortcutDimension2Code | Text[20] | Código de dimensión contable 2. |
+| currencyId | GUID | Identificador único de la divisa. |
+| currencyCode | Text[10] | Código ISO de la moneda. |
+| pricesIncludeTax | Boolean | Indica si los precios incluyen impuestos. |
+| paymentTermsId | GUID | ID de los términos de pago configurados. |
+| shipmentMethodId | GUID | ID del método de envío. |
+| purchaser | Text[20] | Código del agente de compras. |
+| requestedReceiptDate | Date | Fecha de recepción solicitada por el cliente. |
+| discountAmount | Decimal | Monto total de descuento aplicado. |
+| discountAppliedBeforeTax | Boolean | Define si el descuento afecta la base imponible. |
+| totalAmountExcludingTax | Decimal | Subtotal antes de impuestos. |
+| totalTaxAmount | Decimal | Monto de impuestos calculados. |
+| totalAmountIncludingTax | Decimal | Total bruto de la transacción. |
+| fullyReceived | Boolean | Indica si se recibió el 100% de la mercancía. |
+| status | String | Estado del flujo del documento. |
+| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Detalle)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Identificador de versión para control de concurrencia. |
+| id | GUID | Identificador único de la línea de documento. |
+| documentId | GUID | ID del documento principal (cabecera) al que pertenece. |
+| sequence | Integer | Orden de aparición de la línea en el documento (10000). |
+| itemId | GUID | Identificador único del producto en el sistema. |
+| accountId | GUID | ID de la cuenta contable asociada (si aplica). |
+| lineType | String | Tipo de línea (ej. Item/Producto). |
+| lineObjectNumber | String | Código de referencia del producto (PROD007). |
+| description | String | Descripción del producto (SULFATO DE SODIO). |
+| description2 | String | Información adicional o secundaria del producto. |
+| unitOfMeasureId | GUID | ID de la unidad de medida utilizada. |
+| unitOfMeasureCode | String | Código de la unidad de medida (KG). |
+| quantity | Decimal | Cantidad total solicitada (300). |
+| directUnitCost | Decimal | Costo unitario directo del producto. |
+| discountAmount | Decimal | Valor monetario del descuento en la línea. |
+| discountPercent | Decimal | Porcentaje de descuento aplicado. |
+| discountAppliedBeforeTax | Boolean | Indica si el descuento se aplicó antes de impuestos. |
+| amountExcludingTax | Decimal | Importe neto antes de impuestos (300). |
+| taxCode | String | Código del grupo de impuestos (IVA 16). |
+| taxPercent | Decimal | Porcentaje de impuesto aplicado (16). |
+| totalTaxAmount | Decimal | Importe total de impuestos de la línea (48). |
+| amountIncludingTax | Decimal | Importe total con impuestos incluidos (348). |
+| invoiceDiscountAllocation | Decimal | Parte proporcional del descuento de factura asignado. |
+| netAmount | Decimal | Importe neto después de descuentos. |
+| netTaxAmount | Decimal | Importe de impuesto neto aplicado. |
+| netAmountIncludingTax | Decimal | Total neto final con impuestos. |
+| expectedReceiptDate | Date | Fecha estimada de recepción de la mercancía. |
+| receivedQuantity | Decimal | Cantidad física ya recibida (295). |
+| invoicedQuantity | Decimal | Cantidad que ya ha sido facturada. |
+| invoiceQuantity | Decimal | Cantidad pendiente o lista para facturar (295). |
+| receiveQuantity | Decimal | Cantidad pendiente por recibir físicamente. |
+| itemVariantId | GUID | ID de la variante del producto (si aplica). |
+| locationId | GUID | ID del almacén o ubicación de destino. |
 
 ## Consumo de Maestros de Datos
 
@@ -783,7 +1427,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles:**
+**Datos obtenidos**
 
 ```json
 {
@@ -824,26 +1468,26 @@ Authorization: Bearer {access_token}
 | **@odata.context** | String (URL) | La URL que define el esquema y el origen de los datos. |
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
-| number | Code[20] | Es el código de producto (No. de artículo). |
+| number | Text[20] | Es el código de producto (No. de artículo). |
 | displayName | Text[100] | El nombre principal del artículo que aparecerá en los documentos. |
 | displayName2 | Text[50] | Descripción secundaria o extendida para nombres en otros idiomas o detalles técnicos. |
 | type | Enum/Text[20] | Define el tipo de productos (Inventory, Service o Non-Inventory). |
 | itemCategoryId | Guid | ID de la categoría del producto. |
-| itemCategoryCode | Code[20] | Código de la categoría asignada. |
+| itemCategoryCode | text[20] | Código de la categoría asignada. |
 | blocked | Boolean | Si es true, el ítem está deshabilitado para transacciones. |
-| gtin | Code[14] | Código de barras estándar internacional. |
+| gtin | Text[14] | Código de barras estándar internacional. |
 | inventory | Decimal | Cantidad física actual en existencias. |
 | unitPrice | Decimal | Precio de venta unitario antes de impuestos. |
 | priceIncludesTax | Boolean | Indica si el valor en unitPrice ya contiene el impuesto (IVA/VAT). |
 | unitCost | Decimal | Costo unitario del producto. |
 | taxGroupId | Guid | ID del grupo de impuestos. |
-| taxGroupCode | Code[20] | Código que vincula el producto con una configuración de impuestos específica. |
+| taxGroupCode | Text[20] | Código que vincula el producto con una configuración de impuestos específica. |
 | baseUnitOfMeasureId | Guid | ID de la unidad de medida base. |
-| baseUnitOfMeasureCode | Code[10] | Código de la unidad de medida (ej. PZ, UND, KG). |
+| baseUnitOfMeasureCode | Text[10] | Código de la unidad de medida (ej. PZ, UND, KG). |
 | generalProductPostingGroupId | Guid | ID del grupo de registro de producto (General). |
-| generalProductPostingGroupCode | Code[20] | Determina las cuentas de ingresos y gastos en el Libro Mayor. |
+| generalProductPostingGroupCode | Text[20] | Determina las cuentas de ingresos y gastos en el Libro Mayor. |
 | inventoryPostingGroupId | Guid | ID del grupo de registro de inventario. |
-| inventoryPostingGroupCode | Code[20] | Determina la cuenta de activos (Inventario) en el balance. |
+| inventoryPostingGroupCode | Text[20] | Determina la cuenta de activos (Inventario) en el balance. |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
 
 
@@ -875,7 +1519,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles:**
+**Datos obtenidos**
 
 ```json
 {
@@ -920,19 +1564,19 @@ Authorization: Bearer {access_token}
 | @odata.context | String (URL) | La URL que define el esquema y el origen de los datos. |
 | @odata.etag | String | Un identificador de versión del registro (control de concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno del cliente. |
-| number | Code[20] | Es el código de cliente (No. de cliente). |
+| number | Text[20] | Es el código de cliente (No. de cliente). |
 | displayName | Text[100] | El nombre principal del cliente que aparecerá en los documentos. |
 | type | Enum | Define el tipo de cliente (Person o Company). |
 | addressLine1 | Text[100] | Campo para la dirección principal. |
 | addressLine2 | Text[50] | Campo para información adicional de la dirección. |
 | city | Text[30] | Nombre de la ciudad de residencia o de despacho del cliente. |
 | state | Text[30] | Estado, provincia, departamento o región administrativa. |
-| country | Code[10] | Código ISO del país. |
-| postalCode | Code[20] | Código o zona postal. |
+| country | Text[10] | Código ISO del país. |
+| postalCode | Text[20] | Código o zona postal. |
 | phoneNumber | Text[30] | Número telefónico de contacto del cliente. |
 | email | Text[80] | Dirección de correo electrónico principal. |
 | website | Text[255] | Dirección URL del portal web del cliente. |
-| salespersonCode | Code[20] | Código del vendedor o asesor comercial responsable. |
+| salespersonCode | Text[20] | Código del vendedor o asesor comercial responsable. |
 | balanceDue | Decimal | Monto total de las facturas vencidas e impagadas. |
 | creditLimit | Decimal | Límite de crédito financiero otorgado al cliente. |
 | taxLiable | Boolean | Si es true, el sistema calcula impuestos en sus ventas. |
@@ -940,11 +1584,11 @@ Authorization: Bearer {access_token}
 | taxAreaDisplayName | Text[100] | Nombre legible de la configuración de impuestos. |
 | taxRegistrationNumber | Text[20] | Número de identificación tributaria legal (RUC/NIT/RIF). |
 | currencyId | Guid | Identificador técnico (GUID) de la moneda del cliente. |
-| currencyCode | Code[10] | Código internacional de la moneda (ej. USD, EUR). |
+| currencyCode | Text[10] | Código internacional de la moneda (ej. USD, EUR). |
 | paymentTermsId | Guid | ID que define las condiciones y días de crédito. |
 | shipmentMethodId | Guid | ID que define la logística o método de entrega. |
 | paymentMethodId | Guid | ID que indica la forma de pago habitual del cliente. |
-| blocked | Enum/Text[10] | Estado de bloqueo administrativo (ej. Blank, Ship, Invoice, All). |
+| blocked | Text[10] | Estado de bloqueo administrativo (ej. Blank, Ship, Invoice, All). |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
 
 
@@ -956,29 +1600,37 @@ El maestro de almacenes contiene toda la información relacionada con los sitios
 
 ```json
 POST 
-https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 body
 {
   "notificationUrl": "UrlNotificationId",
-  "resource": "/api/v2.0/companies(%companyId%)/locations",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/locations",
   "clientState": ""
 }
 ```
+
+<Aside type="caution">
+La suscripción de almacens se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
 
 **Endpoint para Listado de almacenes (Sincronización Manual)**
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{TenantId}/{enviromentName}/api/v2.0/companies({companyId})/locations
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/Locations
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles:**
+**Datos obtenidos**
 
-```
+```json
 {
     "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/locations/$entity",
     "@odata.etag": "W/\"JzE5OzQxMTUyNTY0NzUzNjg4MDEyODIxOzAwOyc=\"",
@@ -1055,7 +1707,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles:**
+**Datos obtenidos**
 
 ```json
 {
@@ -1143,7 +1795,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles:**
+**Datos obtenidos**
 
 ```json
 {
@@ -1189,7 +1841,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-<Aside type="danger">
+<Aside type="caution">
 La suscripción de transportistas se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
 ```text 
@@ -1207,7 +1859,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
-**Datos disponibles**
+**Datos obtenidos**
 
 ```json
 {
@@ -1251,7 +1903,7 @@ El maestro de código motivo contiene toda la información relacionada con el li
 **Suscripción del recurso por webhook**
 
 
-```
+```json
 {
   "notificationUrl": "UrlNotificationId",
   "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/reasonCodes",
@@ -1263,14 +1915,14 @@ El maestro de código motivo contiene toda la información relacionada con el li
 
 GET 
 
-```
+```json
 https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
 ```
 
 Content-Type: application/json 
 Authorization: Bearer &#123;access_token&#125;
 
-<Aside type="danger">
+<Aside type="caution">
 La suscripción de código de motivo se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
 ```text
@@ -1278,9 +1930,9 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 ```
 </Aside>
 
- **Datos disponibles**
+ **Datos obtenidos**
 
-```
+```json
 {
   "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/ODataV4/$metadata#Company('41cc1c74-5021-f011-9af7-000d3ac04986')/ReasonCodes",
   "value": [
