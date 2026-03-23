@@ -1,4 +1,240 @@
 ---
 title: 'Integraciones Nomina'
-description: Guia para integraciones con el Sistema Sigero y Business Central.
+description: Guia para integraciones con el Sistema de nomina y Business Central.
 ---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import { Code } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
+
+## Propuesta Técnica
+
+### Flujos de Integración con Microsoft Sharepoint
+
+#### Lineamiento de Integración
+
+- El sistema de nómina se integrará con Microsoft SharePoint para almacenar y gestionar documentos relacionados con la nómina, como recibos de pago  y otros documentos relevantes.
+
+- La integración se realizará utilizando la API de Microsoft Graph, que permite interactuar con los servicios de Microsoft 365, incluido SharePoint.
+- Se implementará un proceso automatizado que subirá los documentos de nómina a una biblioteca específica en SharePoint, para facilitar su acceso y gestión.
+
+![Diagrama de Integración con Microsoft SharePoint](../../../assets/paysheet/1.png)
+
+### Cron Job Para obtener la Informacion de Nomina
+
+#### Lineamiento de Integración
+
+- Se desarrollará un proceso automatizado (Job) que se ejecutará periódicamente para obtener la información de nómina desde el sharepoint.
+
+- La información obtenida de la nomina se almacenará en Business Central.
+
+- Despues de obtener la información de nómina, se realizará un proceso de validación para asegurar que los datos sean correctos y completos para ser insertados en los diarios de pagos.
+
+
+### Puntos Previos
+
+1.	URL del ambiente de Microsoft SharePoint
+    -	URL de producción o ambiente de pruebas
+    -	Ejemplo: https://contoso.sharepoint.com/sites/nomina
+    -	**TenantId**: Identificador único del Proveedor.
+2.	Credenciales OAuth 2.0 
+    -	**Client ID (Aplicación ID)**: Identificador de la aplicación registrada
+    -	**Client Secret**: Clave secreta de la aplicación.
+3.	Permisos y alcances (Scopes) 
+    -   Definir los permisos necesarios para acceder a las Apis
+    -	Ejemplo: https://api.businesscentral.dynamics.com/.default
+    -	Token de acceso (Oauth 2.0)
+4. Drive ID
+    - Identificador del drive de SharePoint donde se encontrara los documentos de nómina.
+    - Ejemplo: b!1234567890abcdef1234567890abcdef!123
+5. Site ID
+    - Identificador del sitio de SharePoint donde se encontrara los documentos de nómina.
+    - Ejemplo: 12345678-90ab-cdef-1234-567890abcdef
+6. Folder ID
+    - Identificador de la carpeta dentro del drive de SharePoint donde se encontrara los documentos de nómina.
+    - Ejemplo: 01ABCD2345678901234567890ABCDEFF
+
+### Recursos para pruebas
+
+<LinkCard
+  title="Colección Microsoft Sharepoint (Integración con Nomina)"
+  href="https://documenter.getpostman.com/view/51769148/2sBXijJXGq"
+  target={'_blank'}
+/>
+
+<LinkCard
+  title="Ejemplo Insercion de archivos en SharePoint"
+  href="https://github.com/Virtual-Office-Group/MicrosoftGraphUploadSharepoint"
+  target={'_blank'}
+/>
+
+## Obtener Token de Acceso para Microsoft Graph API
+
+```json
+POST
+'https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token'
+'Content-Type: application/x-www-form-urlencoded'
+body
+{
+    client_id={clientId}
+    scope= 'https://graph.microsoft.com/.default'
+    client_secret='{{clientSecret}}'
+    grant_type='client_credentials'
+}
+```
+
+## Obtener unidades de SharePoint (Drive)
+
+```json
+GET
+https://graph.microsoft.com/v1.0/sites/virtualofgroup.sharepoint.com,c887b431-1d21-42e6-ae2e-a81e165fcacd,ddaa5855-305f-4f94-9b50-f08afd1dbec8/drives'
+--header 'Accept: application/json'
+--header 'Authorization: Bearer {token}'
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#drives",
+    "value": [
+        {
+            "createdDateTime": "2026-03-06T14:06:58Z",
+            "description": "",
+            "id": "b!MbSHyCEd5kKuLqgeFl_KzVVYqt1fMJRPm1Dwiv0dvsjoqFOFf9ckRbXgC62z82Eu",
+            "lastModifiedDateTime": "2026-03-06T14:06:58Z",
+            "name": "Nomina",
+            "webUrl": "https://virtualofgroup.sharepoint.com/sites/vog-prueba/Nomina",
+            "driveType": "documentLibrary",
+            "createdBy": {
+                "user": {
+                    "email": "admin@virtualofgroup.onmicrosoft.com",
+                    "id": "ee769023-dc21-4cd1-9661-2478d55f5c03",
+                    "displayName": "Virtual Office Group, C.A"
+                }
+            },
+            "owner": {
+                "group": {
+                    "email": "vog-prueba@virtualofgroup.onmicrosoft.com",
+                    "id": "83d0b60b-c8f1-4d50-a2e5-7df7f50ebf2c",
+                    "displayName": "Propietarios vog-prueba"
+                }
+            },
+            "quota": {
+                "deleted": 1348596,
+                "remaining": 27487771044375,
+                "state": "normal",
+                "total": 27487790694400,
+                "used": 18301429
+            }
+        }
+    ]
+}
+```
+
+**Campos de respuestas**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| @odata.context | string | URL del contexto de la respuesta. |
+| value | array | Lista de unidades de SharePoint (drives) disponibles en el sitio. |
+| createdDateTime | string | Fecha y hora de creación de la unidad de SharePoint. |
+| description | string | Descripción de la unidad de SharePoint. |
+| id | string | Identificador único de la unidad de SharePoint. |
+| lastModifiedDateTime | string | Fecha y hora de la última modificación de la unidad de SharePoint. |
+| name | string | Nombre de la unidad de SharePoint. |
+| webUrl | string | URL de la unidad de SharePoint. |
+| driveType | string | Tipo de unidad de SharePoint (por ejemplo, "documentLibrary"). |
+| createdBy | object | Información sobre el usuario que creó la unidad de SharePoint. |
+| owner | object | Información sobre el propietario de la unidad de SharePoint. |
+| quota | object | Información sobre la cuota de almacenamiento de la unidad de SharePoint. |
+
+
+## Obtener sitio de SharePoint
+
+```json
+GET
+'https://graph.microsoft.com/v1.0/sites/virtualofgroup.sharepoint.com:/sites/vog-prueba'
+'Accept: application/json'
+'Authorization: Bearer {token}'
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#sites/$entity",
+    "createdDateTime": "2025-09-12T19:28:35.603Z",
+    "description": "",
+    "id": "virtualofgroup.sharepoint.com,c887b431-1d21-42e6-ae2e-a81e165fcacd,ddaa5855-305f-4f94-9b50-f08afd1dbec8",
+    "lastModifiedDateTime": "2026-03-22T17:52:06Z",
+    "name": "vog-prueba",
+    "webUrl": "https://virtualofgroup.sharepoint.com/sites/vog-prueba",
+    "displayName": "vog-prueba",
+    "root": {},
+    "siteCollection": {
+        "hostname": "virtualofgroup.sharepoint.com"
+    }
+}
+```
+
+**campos de respuestas**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| @odata.context | string | URL del contexto de la respuesta. |
+| id | string | Identificador único del sitio de SharePoint. |
+| name | string | Nombre del sitio de SharePoint. |
+| webUrl | string | URL del sitio de SharePoint. |
+| displayName | string | Nombre para mostrar del sitio de SharePoint. |
+| createdDateTime | string | Fecha y hora de creación del sitio de SharePoint. |
+| lastModifiedDateTime | string | Fecha y hora de la última modificación del sitio de SharePoint. |
+| description | string | Descripción del sitio de SharePoint. |
+| root | object | Información sobre la raíz del sitio de SharePoint. |
+| siteCollection | object | Información sobre la colección de sitios de SharePoint. |
+
+
+## Obtener carpeta de SharePoint
+
+```json
+
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(driveItem)",
+    "value": [
+        {
+            "@odata.etag": "\"{CC99933F-4760-4DCB-B9CA-44069C2F8DBD},1\"",
+            "id": "01QMYQJ7R7SOM4YYCHZNG3TSSEA2OC7DN5",
+            "name": "Activos fijos",
+            "webUrl": "https://virtualofgroup.sharepoint.com/sites/vog-prueba/Facturas/Activos%20fijos",
+            "folder": {
+                "childCount": 0
+            }
+        },
+    ]
+}
+```
+
+**Campos de respuestas**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| @odata.context | string | URL del contexto de la respuesta. |
+| value | array | Lista de carpetas disponibles en la unidad de SharePoint. |
+| @odata.etag | string | ETag de la carpeta, utilizado para control de concurrencia. |
+| id | string | Identificador único de la carpeta en SharePoint. |
+| name | string | Nombre de la carpeta en SharePoint. |
+| webUrl | string | URL de la carpeta en SharePoint. |
+| folder | object | Información adicional sobre la carpeta, como el número de elementos hijos (childCount). |
+
+## Inserción de Documentos en SharePoint
+
+
+
+
+
+
