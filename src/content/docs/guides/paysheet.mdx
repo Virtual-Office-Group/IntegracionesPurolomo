@@ -28,10 +28,13 @@ import { Aside } from '@astrojs/starlight/components';
 
 - La información obtenida de la nomina se almacenará en Business Central.
 
-- Despues de obtener la información de nómina, se realizará un proceso de validación para asegurar que los datos sean correctos y completos para ser insertados en los diarios de pagos.
+### Integracion y Validacion de Documentos de Nomina
 
+#### Lineamiento de Integración
 
-### Puntos Previos
+- La integracion obtendra los datos de nomina desde el sharepoint y los insertara en los diarios de pago de Business Central.
+
+## Puntos Previos
 
 1.	URL del ambiente de Microsoft SharePoint
     -	URL de producción o ambiente de pruebas
@@ -54,7 +57,7 @@ import { Aside } from '@astrojs/starlight/components';
     - Identificador de la carpeta dentro del drive de SharePoint donde se encontrara los documentos de nómina.
     - Ejemplo: 01ABCD2345678901234567890ABCDEFF
 
-### Recursos para pruebas
+## Recursos para pruebas
 
 <LinkCard
   title="Colección Microsoft Sharepoint (Integración con Nomina)"
@@ -65,6 +68,12 @@ import { Aside } from '@astrojs/starlight/components';
 <LinkCard
   title="Ejemplo Insercion de archivos en SharePoint"
   href="https://github.com/Virtual-Office-Group/MicrosoftGraphUploadSharepoint"
+  target={'_blank'}
+/>
+
+<linkCard
+  title="Documentación Microsoft Graph API"
+  href="https://learn.microsoft.com/es-es/graph/sdks/sdks-overview"
   target={'_blank'}
 />
 
@@ -239,6 +248,8 @@ GET
 PUT
 https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{folder_id}:/{nombre_archivo}:/content
 Authorization: Bearer {token}
+Content-Length: {tamaño del archivo en bytes}
+Content-Range: bytes 0-{tamaño del archivo - 1}/{tamaño total del archivo}
 Content-Type: application/octet-stream.
 body{
     data-binary '@/C:/Users/programador02/AppData/Local/Postman/app-12.3.0/ffmpeg.dll'
@@ -268,11 +279,15 @@ body{
 
 ### Documentos mayores a 4MB
 
+Para archivos grandes (imágenes de alta resolución, videos o PDFs extensos), el archivo debe dividirse en trozos. Cada trozo debe ser múltiplo de 320 KB (excepto el último).
+
 ```json
 PUT
 https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{folder_id}:/{nombre_archivo}:/createUploadSession
 Authorization: Bearer {token}
 Content-Type: application/octet-stream.
+Content-Length: {tamaño del archivo en bytes}
+Content-Range: bytes 0-{tamaño del archivo - 1}/{tamaño total del archivo}
 body{
     data-binary '@/C:/Users/programador02/AppData/Local/Postman/app-12.3.0/ffmpeg.dll'
 }
@@ -297,6 +312,3 @@ body{
 | name | string | Nombre del archivo en SharePoint. |
 | webUrl | string | URL del archivo en SharePoint. |
 | size | integer | Tamaño del archivo en bytes. |
-
-
-
