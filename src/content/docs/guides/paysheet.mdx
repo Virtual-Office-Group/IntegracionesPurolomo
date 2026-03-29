@@ -233,8 +233,70 @@ GET
 
 ## Inserción de Documentos en SharePoint
 
+### Documentos menores a 4MB
+
+```json
+PUT
+https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{folder_id}:/{nombre_archivo}:/content
+Authorization: Bearer {token}
+Content-Type: application/octet-stream.
+body{
+    data-binary '@/C:/Users/programador02/AppData/Local/Postman/app-12.3.0/ffmpeg.dll'
+}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "id": "01QMYQJ7R7SOM4YYCHZNG3TSSEA2OC7DN5",
+    "name": "ffmpeg.dll",
+    "webUrl": "https://virtualofgroup.sharepoint.com/sites/vog-prueba/Facturas/Activos%20fijos/ffmpeg.dll",
+    "size": 123456
+}
+```
+
+**Campos de respuestas**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| id | string | Identificador único del archivo en SharePoint. |
+| name | string | Nombre del archivo en SharePoint. |
+| webUrl | string | URL del archivo en SharePoint. |
+| size | integer | Tamaño del archivo en bytes. |
 
 
+### Documentos mayores a 4MB
+
+```json
+PUT
+https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{folder_id}:/{nombre_archivo}:/createUploadSession
+Authorization: Bearer {token}
+Content-Type: application/octet-stream.
+body{
+    data-binary '@/C:/Users/programador02/AppData/Local/Postman/app-12.3.0/ffmpeg.dll'
+}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "id": "01QMYQJ7R7SOM4YYCHZNG3TSSEA2OC7DN5",
+    "name": "ffmpeg.dll",
+    "webUrl": "https://virtualofgroup.sharepoint.com/sites/vog-prueba/Facturas/Activos%20fijos/ffmpeg.dll",
+    "size": 123456
+}
+```
+
+**Campos de respuestas**
+
+| Nombre |	Tipo de dato |	Descripción |
+|--- | ---- | ---- |
+| id | string | Identificador único del archivo en SharePoint. |
+| name | string | Nombre del archivo en SharePoint. |
+| webUrl | string | URL del archivo en SharePoint. |
+| size | integer | Tamaño del archivo en bytes. |
 
 
 

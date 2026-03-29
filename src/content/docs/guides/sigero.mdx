@@ -7,6 +7,8 @@ import { LinkCard } from '@astrojs/starlight/components';
 import { Code } from '@astrojs/starlight/components';
 import { Aside } from '@astrojs/starlight/components';
 
+import examplePython from '../../../assets/sigero/js/send_receive_bus.py';
+
 ## Propuesta Técnica
 
 ### Flujos de Inserción vía Service Bus + Logic Apps
@@ -23,7 +25,21 @@ import { Aside } from '@astrojs/starlight/components';
 
 **Aislamiento y Trazabilidad de Errores**: Aquellas transacciones que contengan errores lógicos o de datos serán desviadas a una cola de mensajes fallidos para su inspección. Esto permite que el resto del flujo continúe operando sin interrupciones.
 
-![Pantalla para el diario de productos](../../../assets/sigero/3.png)
+![Pantalla para el integracion Azure Service Bus](../../../assets/sigero/3.png)
+
+#### Librerías y Recursos
+
+##### Azure SDK
+
+La interacción con el bus de servicio debe realizarse obligatoriamente a través del SDK oficial de Azure, descartando el uso de llamadas REST genéricas.
+
+#### Flujo General del proceso
+
+-	Se recibe una solicitud desde Service Bus.
+-	Si la recepcion se procesa correctamente se envia una respuesta 201 al remitente.
+-	En paralelo los datos recibidos son procesados por la logica del flujo en Logic App para derivarlo a Business Central. Cada proceso tiene definida una cola para evitar que los mensajes se solapen o un flujo elevando afecte una unica cola.
+
+![Pantalla para el diario de productos](../../../assets/sigero/1.jpg)
 
 ### Sincronización de Maestros vía Webhooks
 
@@ -99,12 +115,11 @@ Para facilitar la integración y pruebas de los Webhook de Business Central, est
   target={'_blank'}
 />
 
-
-## Compañías de business central
+## Compañías de Business Central
 
 Antes de trabajar con cualquier entidad en Business Central, es necesario conocer el `Company ID` de la compañía con la que se desea interactuar. Este es un paso fundamental ya que todas las operaciones posteriores requieren este identificador.
 
-#### Consultar lista de Compañías
+#### Consultar lista de Compañías (API Rest)
 
 ```json
 GET 
@@ -187,11 +202,18 @@ Business Central utiliza un sistema de cuotas basado en el tiempo. Si se exceden
 | Máximo solicitudes simultaneas | 100 solicitudes simultáneas por entorno. |
 | Solicitudes por Minuto | Máximo 6,000 por minuto.| 
 
-
 ### El límite  de registros por consulta
 
 Business Central puede un máximo de **20,000** registros por petición. Si tu consulta supera ese número, Business Central cortará la respuesta.
 
+### Error 429 (Too Many Requests)
+
+Al realizar consultas directas vía API, el sistema emisor es el responsable único de gestionar la saturación del ERP. Para prevenir errores 429 (Too Many Requests), 
+el cliente debe implementar una cola local de reintentos que respete el encabezado `Retry-After` de Business Central. Esta propiedad indica el tiempo recomendado que el cliente debe esperar antes de volver a intentar la solicitud.
+
+<Aside type="note">
+  La inserción de datos a traves de Service Bus no está sujeta a este límite de consultas, ya que mitigara la saturación mediante la gestión de colas y reintentos automáticos en caso de bloqueos temporales.
+</Aside>
 
 ### Uso de $select
 
@@ -246,8 +268,6 @@ ejemplo: Obtener los primeros 5 registros de los articulos.
 ```json
 /items?$top=5
 ```
-
-
 
 Se utiliza para omitir un número específico de registros de una colección antes de devolver los resultados restantes. Es el complemento directo de $top y es fundamental para implementar la lógica de paginación
 
@@ -330,6 +350,10 @@ Parámetros de la suscripción:
     "systemModifiedBy": "79d10a1b-ea16-483b-964d-5d547971cf47"
 }
 ```
+
+<Aside type="note">
+  La propiedad clientState es un valor secreto definido por el cliente en el momento de la creación de la suscripción. Este valor se incluye en cada notificación enviada por Business Central al endpoint del cliente, lo que permite validar que las notificaciones provienen exclusivamente de nuestra instancia de Business Central.
+</Aside>
 
 **Campos de la respuesta**
 
@@ -535,6 +559,132 @@ El parámetro "changeType" indica el tipo de cambio:
   Las notificaciones no se envían inmediatamente cuando el registro cambia. Al retrasar las notificaciones, Business Central puede asegurarse de que solo se envíe una notificación, aunque el registro haya cambiado varias veces en cuestión de segundos. Por defecto, el sistema espera 30 segundos tras el primer cambio en una entidad antes de enviar la notificación. Durante el retraso de 30 segundos, si se modifican más de 1.000 registros, se envía una única notificación.
 </Aside>
 
+## Uso de SDK para el Azure Service Bus
+
+### Ejemplos de codigo
+
+<LinkCard
+  title="Azure Service Bus client library samples for JavaScript"
+  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-js/service-bus-javascript/"
+  target={'_blank'}
+/>
+
+<LinkCard
+  title="Azure Service Bus client library samples for TypeScript"
+  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-js/service-bus-typescript/"
+  target={'_blank'}
+/>
+
+
+<LinkCard
+  title="Azure Service Bus client library samples for Python"
+  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-python/servicebus-samples/"
+  target={'_blank'}
+/>
+
+<LinkCard
+  title="Azure Service Bus client library samples for .NET"
+  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-net/azuremessagingservicebus-samples/"
+  target={'_blank'}
+/>
+
+### Generar SAS Token para autenticación
+
+Para autenticarte con Azure Service Bus, puedes generar un token SAS (Shared Access Signature) utilizando el siguiente código de ejemplo en Python. Este token se utiliza para autorizar tus solicitudes al Service Bus.
+
+```python
+
+import hmac
+import hashlib
+import base64
+import time
+import urllib.parse
+import requests
+
+def get_auth_token(sb_uri, key_name, key):
+    """Genera el token SAS para la cabecera Authorization"""
+    # El URI debe estar codificado para el string de firma
+    ttl = int(time.time()) + 3600  # Válido por 1 hora
+    expiry = str(ttl)
+    
+    encoded_uri = urllib.parse.quote_plus(sb_uri)
+    string_to_sign = encoded_uri + '\n' + expiry
+    
+    # Firma HMAC-SHA256
+    key_bytes = key.encode('utf-8')
+    string_to_sign_bytes = string_to_sign.encode('utf-8')
+    signature = base64.b64encode(hmac.new(key_bytes, string_to_sign_bytes, hashlib.sha256).digest())
+    
+    # Construcción del token codificado
+    auth_format = 'SharedAccessSignature sr={0}&sig={1}&se={2}&skn={3}'
+    token = auth_format.format(
+        encoded_uri, 
+        urllib.parse.quote_plus(signature), 
+        expiry, 
+        key_name
+    )
+    return token
+
+# --- CONFIGURACIÓN ---
+NAMESPACE = ""      # Solo el nombre, sin .servicebus...
+ENTITY_PATH = "TU-COLA-O-TOPIC" # Nombre de la cola o el topic
+KEY_NAME = "RootManageSharedAccessKey" 
+KEY_VALUE = "TU-PRIMARY-KEY-AQUI"
+
+# Construcción de la URL de Azure REST API
+resource_uri = f"https://{NAMESPACE}.servicebus.windows.net/{ENTITY_PATH}"
+send_url = f"{resource_uri}/messages"
+
+# 1. Generar el Token
+sas_token = get_auth_token(resource_uri, KEY_NAME, KEY_VALUE)
+```
+
+### Generar correlationId para ID de mensaje
+
+Se necesita un GUID para el correlationId del mensaje. Aquí tienes un ejemplo de cómo generar un ID:
+
+#### Formas de generar un GUID:
+
+```
+Python
+import uuid
+correlationId = str(uuid.uuid4())
+print(correlationId)
+2728f6b3-4aaa-4fe7-80d7-4c19fa21c625
+ 
+NodeJS:
+const { v4: uuidv4 } = require('uuid');
+correlationId=uuidv4()
+console.log(correlationId)
+aa463307-09a0-4cb2-8cac-db745719c612
+ 
+PowerShell
+$correlationId=[guid]::NewGuid().ToString()
+Write-Output $correlationId
+da41df95-679b-40fd-ba67-d5b8fc311aa6
+```
+
+<Aside type="note">
+  El correlationId es un identificador único que se asigna a cada mensaje enviado al Azure Service Bus. Este ID es crucial para rastrear y correlacionar mensajes a lo largo de su ciclo de vida, especialmente en escenarios de integración y depuración. Asegúrate de generar un nuevo correlationId para cada mensaje que envíes, ya que esto facilitará el seguimiento y la resolución de problemas en tu sistema.
+</Aside>
+
+
+### Obtener mensajes de Salida
+
+Una vez enviado el mensaje procedemos con monitorear la cola de salida para obtener la respuesta. Usamos POST porque vamos a sacar el menssaje de la cola.
+
+El trigger de la logica que sondea la cola recepcionalmacen lo ajuste a 30 segundos
+
+El timeout del request lo ajuste a 30 segundos, dando el tiempo necesario para obtener el mensaje.
+
+
+<LinkCard
+  title="Ejemplo envio y recepción de mensajes con Azure Service Bus en Python"
+  href={examplePython}
+  target={'_blank'}
+  download={true}
+/>
+
 ## Recepción de Almacenes
 
 ### Obtener lista de Recepciones de Almacén
@@ -572,14 +722,19 @@ Authorization: Bearer {access_token}
 
 ### Creación de Recepciones de Almacenes
 
-
 ```json
-GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
+}
 body
 {
+
   "locationCode": "PRINCIPAL", //Codigo de Almacen
   "postingDate": "2026-02-10", // Fecha de Registro
   "sortingMethod": "Item", // Metodo de Orden
@@ -744,10 +899,14 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 ### Creación de Pedidos de Transferencia
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
 body
 {
     "transferFromCode": "ALMACEN 1", // Codigo del almacen origen
@@ -885,10 +1044,15 @@ body
 En Business Central, la creación de un Envío de Almacén a partir de un Pedido de Transferencia no es automática por el simple hecho de registrar, sino que depende estrictamente de la jerarquía de configuración en la ficha del almacén de origen.
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature} 
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
+}
 body
 {
   "environment":{environment}, // Nombre del entorno
@@ -984,11 +1148,15 @@ En business central, la creación de un Picking de Almacén a partir de un Enví
 El picking de almacen se crear a partir de cada linea del envio de almacen, por lo que para crear el picking de almacen se debe consumir el mismo endpoint que para la creación del envio de almacen, pero enviando en el body la información de la linea del pedido de transferencia y no del encabezado.
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
-body
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
+}
 {
   "environment":{environment}, // Nombre del entorno
   "companyName":{companyID}, //codigo de la compañia
@@ -1091,10 +1259,15 @@ se debe configurar la plantilla y sección de diario a utilizar para crear los a
 ### Ajuste positivo
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {sas_token}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
+}
 {
     "environment":{environment}, // Nombre del entorno
     "companyName":{companyID}, //codigo de la compañia 
@@ -1109,10 +1282,15 @@ Authorization: Bearer {access_token}
 ### Ajuste Negativo
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
-Content-Type: application/json
-Authorization: Bearer {access_token}
+POST
+https://{namespace}.servicebus.windows.net/{queue_name}/messages
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
+}
 {
     "environment":{environment}, // Nombre del entorno
     "companyName":{companyID}, //codigo de la compañia

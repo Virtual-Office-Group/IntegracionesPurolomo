@@ -5,6 +5,9 @@ import starlightImageZoom from 'starlight-image-zoom'
 
 // https://astro.build/config
 export default defineConfig({
+	vite: {
+    	assetsInclude: ['**/*.py'], // <--- Agrega esta línea
+  	},
 	integrations: [
 		starlight({
 			plugins: [starlightImageZoom()],
