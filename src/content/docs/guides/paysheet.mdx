@@ -1,5 +1,5 @@
 ---
-title: 'Integraciones Nomina'
+title: 'Integraciones Para importacion de Nomina'
 description: Guia para integraciones con el Sistema de nomina y Business Central.
 ---
 
@@ -33,6 +33,123 @@ import { Aside } from '@astrojs/starlight/components';
 #### Lineamiento de Integración
 
 - La integracion obtendra los datos de nomina desde el sharepoint y los insertara en los diarios de pago de Business Central.
+
+## Estructura del Archivo
+
+
+
+
+desde Business Central se permitirá importar archivos de nómina en formato TXT o CSV mediante dos mecanismos:
+
+El archivo debe respetar una estructura previamente definida, donde cada línea representa un asiento contable y contiene información como:
+
+- Empresa.
+- Tipo de diario.
+- Número de documento.
+- Tipo de cuenta
+- Número de cuenta.
+- Fechas contables.
+- Importes **(Debe / Haber)**.
+- Tipo de importe **(Debe o Haber)**.
+- Tipo de Cuentra Contrapartida **(cuando aplique)**.
+- Cuenta contrapartida **(cuando aplique)**. 
+- Método de pago **(cuando aplica)**.
+- Dimensiones.
+
+#### Empresa
+
+Código de la empresa en Business Central. Puede ser un codigo alfanumerico con espacios y caracteres especiales, pero debe ser único para cada empresa.
+
+#### Tipo de diario.
+
+Identificador del tipo de diario en Business Central. Solo puede ser numerico.
+    
+    - Tipos de diario:
+        - **0** = Diario General
+        - **1** = Diario de Pagos
+
+#### Número de documento.
+
+Número que identifica el documento en Business Central. Puede ser alfanumérico.
+
+#### Tipo de cuenta
+
+Indica el tipo de cuenta en Business Central. Solo puede ser numerico.
+
+    - Tipos de cuenta:
+        - **0** = Cuenta Contable
+        - **1** = Cliente
+        - **2** = Proveedor
+        - **3** = Cuenta Bancaria
+        - **4** = Activo Fijo
+        - **5** = Socio IC
+        - **6** = Empleado
+        - **7** = Cuenta de Asignacion
+
+
+#### Numero de Cuenta
+
+Número que identifica la cuenta en Business Central. Puede ser alfanumérico.
+
+#### Fechas Contables
+
+Fecha en formato ISO 8601 (YYYY-MM-DD) que indica la fecha contable del asiento.
+
+#### Importes (Debe / Haber)
+
+Importe numérico que indica el monto del asiento. El importe debe ser positivo.
+
+#### Tipo de importe 
+
+Indica si el importe corresponde al Debe o al Haber. Solo puede ser numerico.
+
+    - Tipos de importe:
+        - **1** = Debe
+        - **2** = Haber
+
+#### Tipo de Cuenta Contrapartida (cuando aplique)
+
+Indica el tipo de cuenta contrapartida en Business Central. Solo puede ser numerico.
+
+    - Tipos de cuenta contrapartida:
+        - **0** = Cuenta Contable
+        - **1** = Cliente
+        - **2** = Proveedor
+        - **3** = Cuenta Bancaria
+        - **4** = Activo Fijo
+        - **5** = Socio IC
+        - **6** = Empleado
+        - **7** = Cuenta de Asignacion
+
+#### Cuenta Contrapartida (cuando aplique)
+
+Número que identifica la cuenta contrapartida en Business Central. Puede ser alfanumérico.
+
+#### Método de pago (cuando aplica)
+
+Indica el método de pago utilizado en la transacción. Solo puede ser numerico.
+
+
+#### Dimensiones
+
+Las dimensiones son atributos adicionales que se pueden asignar a los asientos contables para proporcionar información adicional sobre la transacción. Pueden incluir información como el departamento, el proyecto, la ubicación, entre otros. Las dimensiones se representan como pares de nombre y valor en el archivo de nómina.
+
+
+### Ejemplo de Estructura del Archivo
+
+<LinkCard
+  title="Ejemplo diario general"
+  href="../../../../public/ExampleGeneralJournal.txt"
+  target={'_blank'}
+  download={"ExampleGeneralJournal.txt"}
+/>
+
+<LinkCard
+  title="Ejemplo diario de pago"
+  href="../../../../public/ExamplePaymentJournal.txt"
+  target={'_blank'}
+  download={"ExamplePaymentJournal.txt"}
+/>
 
 ## Puntos Previos
 

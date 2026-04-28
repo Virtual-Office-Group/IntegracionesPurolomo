@@ -1,0 +1,3 @@
+Company;DailyOfType;DocumentNo;PostingDate;DocumentDate;DocumentType;AccountType;AccountNo;Description;CurrencyCode;Amount;AmountType;BalAccountType;BalAccountNo;PaymentMethod;Dim1;Dim2
+PRUEBA BC;1;PAG-NOM-20260430;2026-04-23;2026-04-23;3;0;2.1.1.1.001;;;1500;1;3;;BANCO;LOCALIDAD;ADM
+PRUEBA BC;1;PAG-NOM-20260430;2026-04-23;2026-04-23;3;0;1.1.1.2.005;;;1500;2;3;;BANCO;LOCALIDAD;ADM
