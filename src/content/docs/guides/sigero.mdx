@@ -720,6 +720,17 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
 
+### Tipos de documentos para la recepcion
+
+pueden diversos tipos de documentos a recepcionar, como por ejemplo:
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| PurchaseOrder | String | Orden de compra generada en Business Central. |
+| InboundTransfer | String | Transferencia entrante desde otro almacén. |
+
+el tipo de documento se especifica en el campo `sourceDocument` dentro de cada línea de la recepción, lo que permite a Business Central identificar correctamente el origen de cada artículo recibido y aplicar las reglas de negocio correspondientes para su procesamiento.
+
 ### Creación de Recepciones de Almacenes
 
 ```json
@@ -741,7 +752,7 @@ body
   "shippingAgentCode": "ALEX", //Codigo del transportista
   "warehouseReceiptLines": [
     { 
-      "sourceDocument": "Purchase Order", // Tipo de documento de origen
+      "sourceDocument": "PurchaseOrder", // Tipo de documento de origen
       "sourceNo": "C-PDA0000273", // Numero de documento de origen
       "sourceLineNo": 50000, // Numero de linea del documento de origen
       "itemNo": "PROD005", // Codigo del articulo
@@ -749,7 +760,7 @@ body
       "quantity": 10 // Cantidad a recibir
     },
     { 
-      "sourceDocument": "Purchase Order", // Tipo de documento de origen
+      "sourceDocument": "PurchaseOrder", // Tipo de documento de origen
       "sourceNo": "C-PDA0000273", // Numero de documento de origen
       "sourceLineNo": 50000, // Numero de linea del documento de origen
       "itemNo": "PROD003", // Codigo del articulo
@@ -859,6 +870,7 @@ body
 | itemNo | Text[50] | Código del artículo que se está recibiendo. |
 | unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad recibida (por ejemplo, "KG"). |
 | quantity | Decimal | Cantidad del artículo que se está recibiendo. |
+
 
 Para poder visualizarlo, el usuario debe navegar a la pantalla de **Recepción Almacén.** Desde esta ventana, es posible visualizar y gestionar todos los documentos de entrada pendientes de recepción de almacén.
 
@@ -1243,18 +1255,72 @@ Se podra visualizar el picking de almacén creado desde la pantalla de **Picking
 
 ## Ajuste de Inventario
 
-### Configuración de Ajuste de inventario
+### Plantillas y secciones de diario
 
-Para la creacion de ajuste de inventario a partir de la API, 
-se debe configurar la plantilla y sección de diario a utilizar para crear los asientos en el
- diario de productos.Se pueden como **Configuración Ajuste de inventario (SIGERO)** en business central.
+Para la creacion de ajuste de inventario a partir de la API, se deben configurar y consultar la plantillas y secciónes de diario a utilizar para crear los asientos en el
+ diario de productos.
 
-![Pantalla para la configuración de seccion de diario](../../../assets/sigero/1.png)
+Endpoint para consultar plantillas y secciones de diario:
 
-<Aside type="note">
-  Este proceso está intrínsecamente vinculado a la Configuración de Plantilla de Diario General de Business Central.
-</Aside>
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/itemJournalTemplates?$expand=itemJournalSections
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
 
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/itemJournalTemplates",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5Ozk4NTI4NTExMDM3NjUyMjYwMDAxOzAwOyc=\"",
+            "id": "e41ad6ab-1308-f111-8405-000d3ac0ae45",
+            "name": "PRODUCTO",
+            "description": "Diario Producto",
+            "reasonCode": "",
+            "systemModifiedAt": "2026-02-12T13:06:46.657Z",
+            "itemJournalSections": [
+                {
+                  "@odata.etag": "W/\"JzIwOzE3MzY0ODAyMzIwNzUzNzI2NTA0MTswMDsn\"",
+                  "id": "e51ad6ab-1308-f111-8405-000d3ac0ae45",
+                  "name": "GENERICO",
+                  "description": "Diario gen\u00e9rico",
+                  "noSerie": "",
+                  "reasonCode": "",
+                  "systemModifiedAt": "2026-02-12T13:06:46.683Z"
+                }
+            ]
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Plantilla)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | El ID de la plantilla de diario. |
+| name | Code[10] | nambre de la plantilla del Diario |
+| description | Text[100] | descripción de la seccion de diario |
+| reasonCode | Code[10] | Codigo de motivo asociado a la plantilla |
+| systemModifiedAt | Text[20] | Fecha de la ultima modificacion |
+
+**Campos de la respuesta (Secciones)**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| id | Guid | El ID de la seccion de diario. |
+| code | Code[10] | nombre de la seccion del Diario |
+| description | Text[100] | descripción de la seccion de diario |
+| noSerie | Code[20] | serie numerica utilizada en la seccion | 
+| reasonCode | Code[10] | Codigo de motivo asociado a la Sección |
+| systemModifiedAt | Text[20] | Fecha de la ultima modificacion |
 
 ### Ajuste positivo
 
@@ -1271,6 +1337,8 @@ Header{
 {
     "environment":{environment}, // Nombre del entorno
     "companyName":{companyID}, //codigo de la compañia 
+    "journalTemplateName": "GENERAL", // codigo de plantilla de diario    
+    "journalBatchName": "AJUSTE", // codigo de seccion de diario
     "itemNo": "1002", // Codigo del Producto
     "entryType": "Positive Adjmt.", // Tipo de ajuste: Positivo
     "documentNo": "4874", //Numero de documento
@@ -1294,6 +1362,8 @@ Header{
 {
     "environment":{environment}, // Nombre del entorno
     "companyName":{companyID}, //codigo de la compañia
+    "journalTemplateName": "GENERAL", // codigo de plantilla de diario    
+    "journalBatchName": "AJUSTE", // codigo de seccion de diario
     "itemNo": "1002", // Codigo del Producto
     "entryType": "Negative Adjmt.", //Tipo de ajuste: Negativo
     "documentNo": "4874", //Numero de documento a vincular con el ajuste
@@ -1309,7 +1379,7 @@ Header{
   "@odata.etag": "W/\"JzE5OzUyNzU3Nzg0NzIwNzgxMTYwNjkxOzAwOyc=\"",
   "journalId": "af6ea8d5-2c08-f111-8405-002248d31bd2",
   "journalTemplateName": "PRODUCTO",
-  "journalBatchName": "GENERICO",
+  "journalBatchName": "AJUSTE",
   "lineNo": 20000,
   "itemNo": "PROD001",
   "description": "HARINA DE MAIZ ",
@@ -1388,7 +1458,7 @@ Para consultar manualmente las órdenes de compra, puedes consumir el endpoint e
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/purchaseOrders?$expand=PurchaseOrderLines&$filter=status eq 'open' and fullyReceived  eq false
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/ShippingAgents?$expand=shippingAgentsPlates
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1397,92 +1467,63 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-  "@odata.etag": "W/\"JzIwOzE0OTk0MjAxMzgwMTQ2OTIxNzU4MTswMDsn\"",
-  "id": "f454e208-1222-f011-9af7-6045bd3b911d",
-  "number": "C-PDA0000262",
-  "orderDate": "2025-04-25",
-  "postingDate": "2025-04-25",
-  "vendorId": "3efbdd7d-da21-f011-9af7-000d3ac04986",
-  "vendorNumber": "C-PROV0000013",
-  "vendorName": "PROVEEDOR 4",
-  "payToName": "PROVEEDOR 4",
-  "payToVendorId": "3efbdd7d-da21-f011-9af7-000d3ac04986",
-  "payToVendorNumber": "C-PROV0000013",
-  "shipToName": "ALMACEN PRINCIPAL",
-  "shipToContact": "",
-  "buyFromAddressLine1": "",
-  "buyFromAddressLine2": "",
-  "buyFromCity": "",
-  "buyFromCountry": "",
-  "buyFromState": "",
-  "buyFromPostCode": "",
-  "payToAddressLine1": "",
-  "payToAddressLine2": "",
-  "payToCity": "",
-  "payToCountry": "",
-  "payToState": "",
-  "payToPostCode": "",
-  "shipToAddressLine1": "",
-  "shipToAddressLine2": "",
-  "shipToCity": "",
-  "shipToCountry": "",
-  "shipToState": "",
-  "shipToPostCode": "",
-  "shortcutDimension1Code": "",
-  "shortcutDimension2Code": "",
-  "currencyId": "7d2ee4e9-5021-f011-9af7-002248dfda48",
-  "currencyCode": "USD",
-  "pricesIncludeTax": false,
-  "paymentTermsId": "6f2ee4e9-5021-f011-9af7-002248dfda48",
-  "shipmentMethodId": "00000000-0000-0000-0000-000000000000",
-  "purchaser": "",
-  "requestedReceiptDate": "0001-01-01",
-  "discountAmount": 0,
-  "discountAppliedBeforeTax": true,
-  "totalAmountExcludingTax": 300,
-  "totalTaxAmount": 48,
-  "totalAmountIncludingTax": 348,
-  "fullyReceived": false,
-  "status": "Open",
-  "lastModifiedDateTime": "2025-04-25T20:17:52.347Z",
-  "purchaseOrderLines": [
-    {
-        "@odata.etag": "W/\"JzE5OzcwMjk4MTM5NjI2MDU1MzExNjYxOzAwOyc=\"",
-        "id": "400ba948-1222-f011-9af7-6045bd3b911d",
-        "documentId": "f454e208-1222-f011-9af7-6045bd3b911d",
-        "sequence": 10000,
-        "itemId": "5be2c78d-0f22-f011-9af7-6045bd3b911d",
-        "accountId": "00000000-0000-0000-0000-000000000000",
-        "lineType": "Item",
-        "lineObjectNumber": "PROD007",
-        "description": "SULFATO DE SODIO",
-        "description2": "",
-        "unitOfMeasureId": "4fcfdbef-5021-f011-9af7-002248dfda48",
-        "unitOfMeasureCode": "KG",
-        "quantity": 300,
-        "directUnitCost": 1,
-        "discountAmount": 0,
-        "discountPercent": 0,
-        "discountAppliedBeforeTax": false,
-        "amountExcludingTax": 300,
-        "taxCode": "IVA 16",
-        "taxPercent": 16,
-        "totalTaxAmount": 48,
-        "amountIncludingTax": 348,
-        "invoiceDiscountAllocation": 0,
-        "netAmount": 300,
-        "netTaxAmount": 48,
-        "netAmountIncludingTax": 348,
-        "expectedReceiptDate": "2025-04-25",
-        "receivedQuantity": 295,
-        "invoicedQuantity": 0,
-        "invoiceQuantity": 295,
-        "receiveQuantity": 0,
-        "itemVariantId": "00000000-0000-0000-0000-000000000000",
-        "locationId": "79231df8-d921-f011-9af7-000d3ac04986"
-    }
-  ]
-},
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/purchaseOrders",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzI2OTEwNjgyNjg4NDg0NTA4MzQxOzAwOyc=\"",
+            "id": "3aa5abdf-de21-f011-9af7-000d3ac04986",
+            "number": "C-PDA0000258",
+            "orderDate": "2025-04-25",
+            "postingDate": "2025-04-25",
+            "vendorNumber": "C-PROV0000008",
+            "vendorName": "PROVEEDOR  1",
+            "currencyCode": "USD",
+            "priceIncludeTax": false,
+            "purchaser": "",
+            "requestedReceiptDate": "0001-01-01",
+            "status": "Released",
+            "lastModifiedDateTime": "2025-04-25T14:40:56.823Z",
+            "purchaseOrderLines": [
+                {
+                    "@odata.etag": "W/\"JzIwOzEwNjkxMDQyNDQ1MjEwNDY5ODc5MTswMDsn\"",
+                    "id": "3ca5abdf-de21-f011-9af7-000d3ac04986",
+                    "documentId": "C-PDA0000258",
+                    "sequence": 10000,
+                    "lineType": "Item",
+                    "lineObjectNumber": "PROD001",
+                    "description": "HARINA DE MAIZ",
+                    "description2": "",
+                    "unitOfMeasureCode": "KG",
+                    "locationCode": "PRINCIPAL",
+                    "quantity": 10,
+                    "directUnitCost": 1,
+                    "receivedQuantity": 10,
+                    "invoicedQuantity": 10,
+                    "invoiceQuantity": 0,
+                    "receiveQuantity": 0
+                },
+                {
+                    "@odata.etag": "W/\"JzE5Ozg5MDg4MDE3NjQwMjAxNzIwOTAxOzAwOyc=\"",
+                    "id": "e4da90f8-de21-f011-9af7-000d3ac04986",
+                    "documentId": "C-PDA0000258",
+                    "sequence": 20000,
+                    "lineType": "Item",
+                    "lineObjectNumber": "PROD002",
+                    "description": "HARINA DE SOYA",
+                    "description2": "",
+                    "unitOfMeasureCode": "KG",
+                    "locationCode": "PRINCIPAL",
+                    "quantity": 10,
+                    "directUnitCost": 1.5,
+                    "receivedQuantity": 10,
+                    "invoicedQuantity": 0,
+                    "invoiceQuantity": 10,
+                    "receiveQuantity": 0
+                }
+            ]
+        },
+    ]
+}
 ```
 
 **Campos de la respuesta (Encabezado)**
@@ -1494,46 +1535,12 @@ Authorization: Bearer {access_token}
 | number | Text[20] | Códigoo pedido de compra |
 | orderDate | Date | Fecha de emisión del documento. |
 | postingDate | Date | Fecha contable del registro. |
-| vendorId | GUID | ID único del proveedor vinculado. |
 | vendorNumber | Text[20] | Código maestro del proveedor |
 | vendorName | Text[100] | Nombre o razón social del proveedor. |
-| payToName | Text[100] | Nombre de la entidad a la que se paga. |
-| payToVendorId | GUID | ID del proveedor receptor del pago. |
-| payToVendorNumber | Text[20] | Código del proveedor receptor del pago. |
-| shipToName | Text[100] | Nombre del destino de entrega. |
-| shipToContact | Text[100] | Persona de contacto en el punto de entrega. |
-| buyFromAddressLine1 | Text[100] | Dirección principal de compra. |
-| buyFromAddressLine2 | Text[50] | Dirección secundaria de compra. |
-| buyFromCity | Text[50] | Ciudad del proveedor. |
-| buyFromCountry | Text[10] | País del proveedor. |
-| buyFromState | Text[40] | Estado o provincia del proveedor. |
-| buyFromPostCode | Text[20] | Código postal del proveedor. |
-| payToAddressLine1 | Text[100] | Dirección de facturación (Línea 1). |
-| payToAddressLine2 | Text[50] | Dirección de facturación (Línea 2). |
-| payToCity | Text[50] | Ciudad de facturación. |
-| payToCountry | Text[20] | País de facturación. |
-| payToState | Text[40] | Estado de facturación. |
-| shipToAddressLine1 | Text[100] | Dirección de envío (Línea 1). |
-| shipToAddressLine2 | Text[50] | Dirección de envío (Línea 2). |
-| shipToCity | Text[30] | Ciudad de envío. |
-| shipToCountry | Text[20] | País de envío. |
-| shipToState | Text[40] | Estado de envío. |
-| shipToPostCode | Text[20] | Código postal de envío. |
-| shortcutDimension1Code | Text[20] | Código de dimensión contable 1. |
-| shortcutDimension2Code | Text[20] | Código de dimensión contable 2. |
-| currencyId | GUID | Identificador único de la divisa. |
 | currencyCode | Text[10] | Código ISO de la moneda. |
 | pricesIncludeTax | Boolean | Indica si los precios incluyen impuestos. |
-| paymentTermsId | GUID | ID de los términos de pago configurados. |
-| shipmentMethodId | GUID | ID del método de envío. |
 | purchaser | Text[20] | Código del agente de compras. |
 | requestedReceiptDate | Date | Fecha de recepción solicitada por el cliente. |
-| discountAmount | Decimal | Monto total de descuento aplicado. |
-| discountAppliedBeforeTax | Boolean | Define si el descuento afecta la base imponible. |
-| totalAmountExcludingTax | Decimal | Subtotal antes de impuestos. |
-| totalTaxAmount | Decimal | Monto de impuestos calculados. |
-| totalAmountIncludingTax | Decimal | Total bruto de la transacción. |
-| fullyReceived | Boolean | Indica si se recibió el 100% de la mercancía. |
 | status | String | Estado del flujo del documento. |
 | lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
 
@@ -1546,34 +1553,17 @@ Authorization: Bearer {access_token}
 | documentId | GUID | ID del documento principal (cabecera) al que pertenece. |
 | sequence | Integer | Orden de aparición de la línea en el documento (10000). |
 | itemId | GUID | Identificador único del producto en el sistema. |
-| accountId | GUID | ID de la cuenta contable asociada (si aplica). |
 | lineType | String | Tipo de línea (ej. Item/Producto). |
 | lineObjectNumber | String | Código de referencia del producto (PROD007). |
 | description | String | Descripción del producto (SULFATO DE SODIO). |
 | description2 | String | Información adicional o secundaria del producto. |
-| unitOfMeasureId | GUID | ID de la unidad de medida utilizada. |
 | unitOfMeasureCode | String | Código de la unidad de medida (KG). |
 | quantity | Decimal | Cantidad total solicitada (300). |
 | directUnitCost | Decimal | Costo unitario directo del producto. |
-| discountAmount | Decimal | Valor monetario del descuento en la línea. |
-| discountPercent | Decimal | Porcentaje de descuento aplicado. |
-| discountAppliedBeforeTax | Boolean | Indica si el descuento se aplicó antes de impuestos. |
-| amountExcludingTax | Decimal | Importe neto antes de impuestos (300). |
-| taxCode | String | Código del grupo de impuestos (IVA 16). |
-| taxPercent | Decimal | Porcentaje de impuesto aplicado (16). |
-| totalTaxAmount | Decimal | Importe total de impuestos de la línea (48). |
-| amountIncludingTax | Decimal | Importe total con impuestos incluidos (348). |
-| invoiceDiscountAllocation | Decimal | Parte proporcional del descuento de factura asignado. |
-| netAmount | Decimal | Importe neto después de descuentos. |
-| netTaxAmount | Decimal | Importe de impuesto neto aplicado. |
-| netAmountIncludingTax | Decimal | Total neto final con impuestos. |
-| expectedReceiptDate | Date | Fecha estimada de recepción de la mercancía. |
 | receivedQuantity | Decimal | Cantidad física ya recibida (295). |
 | invoicedQuantity | Decimal | Cantidad que ya ha sido facturada. |
 | invoiceQuantity | Decimal | Cantidad pendiente o lista para facturar (295). |
 | receiveQuantity | Decimal | Cantidad pendiente por recibir físicamente. |
-| itemVariantId | GUID | ID de la variante del producto (si aplica). |
-| locationId | GUID | ID del almacén o ubicación de destino. |
 
 ## Consumo de Maestros de Datos
 
@@ -2032,7 +2022,7 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({companyId})/ShippingAgents
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents?$expand=shippingAgentsPlates
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2041,39 +2031,63 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-  "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/ODataV4/$metadata#Company('41cc1c74-5021-f011-9af7-000d3ac04986')/ShippingAgents",
-  "value": [
-    {
-      "@odata.etag": "W/\"JzIwOzE3ODEwMDE1NTU4ODg0NjM0OTc2MTswMDsn\"",
-      "id": "b057d38a-c006-f111-8405-7ced8da9239b",
-      "code": "ALEX",
-      "name": "Alexander",
-      "lastName": "",
-      "companyName": "",
-      "nitCompany": "",
-      "plate": "",
-      "accountNo": "",
-      "lastModifiedDateTime": "2026-02-26T14:30:23.28Z"
-    }
-  ]
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/shippingAgents",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzkxODk1OTg3MzM5OTY4NDE4NzUxOzAwOyc=\"",
+            "id": "b057d38a-c006-f111-8405-7ced8da9239b",
+            "code": "CM3SRL",
+            "name": "Camiones",
+            "lastName": "SRL",
+            "vendor": "C-PROV0000008",
+            "lastModifiedDateTime": "2026-06-11T19:18:00.637Z",
+            "shippingAgentsPlates": [
+                {
+                    "@odata.etag": "W/\"JzE5Ozk2NzIyNDU0NDUwMzUyMDQxODkxOzAwOyc=\"",
+                    "shippingAgentCode": "CM3SRL",
+                    "code": "AD543ED",
+                    "id": "5eec9a56-ca65-f111-ab09-7ced8da8a516",
+                    "description": "CAMION",
+                    "systemModifiedAt": "2026-06-11T19:18:35.167Z"
+                },
+                {
+                    "@odata.etag": "W/\"JzE5Ozc1MTg1MTAwOTU1NTc2MTQ4MjExOzAwOyc=\"",
+                    "shippingAgentCode": "CM3SRL",
+                    "code": "CH540BA",
+                    "id": "4d97955c-ca65-f111-ab09-7ced8da8a516",
+                    "description": "CAMION 2",
+                    "systemModifiedAt": "2026-06-11T19:18:50.16Z"
+                }
+            ]
+        }
+    ]
 }
 ```
 
-**Campos de la respuesta**
+**Campos de la respuesta (encabezado)**
 
 | Nombre | Tipo de dato | Descripción |
 |---|---|---|
 | @odata.context |  | La URL que define el esquema y el origen de los datos |
 | @odata.etag |  | Un identificador de versión del registro. |
 | id | Guid | ID del Transportista. |
-| code | Text[10] | Es el código del transportista. |
+| code | Code[10] | Es el código del transportista. |
 | name | Text[50] | Nombre del transportista. |
 | lastName | Text[50] | Apellido del transportista |
-| companyName | Text[100] | Nombre de compañía |
-| nitCompany | Text[50] | Rif de compañía |
-| plate | Text[20] | Placa del vehículo |
-| accountNo | Text[30] | Número de cuenta |
+| vendor | Text[100] | Nombre de compañía |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+**Campos de la respuesta (placas)**
+
+| Nombre | Tipo de dato | Descripción |
+|---|---|---|
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| shippingAgentCode | Code[10] | La URL que define el esquema y el origen de los datos |
+| plate | Text[15] | placa del vehiculo |
+| description | Text[100] | descripcion del vehiculo |
+| lastModifiedDateTime| Datetime | Fecha de la ultima modificacion |
+
+
 
 ### Maestro de Códigos de motivo
 El maestro de código motivo contiene toda la información relacionada con el listado de códigos de motivo utilizados en ajustes de inventario y transferencia de pedidos.
