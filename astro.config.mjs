@@ -33,7 +33,7 @@ export default defineConfig({
 					label: 'Integraciones',
 					items: [
 						
-						{ label: 'Sistema Sigero', slug: 'guides/sigero' },
+						{ label: 'Sigero', slug: 'guides/sigero' },
 						{ label: 'Nomina - Business Central',slug:'guides/paysheet'}
 					],
 				},

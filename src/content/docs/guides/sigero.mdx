@@ -25,8 +25,6 @@ import examplePython from '../../../assets/sigero/js/send_receive_bus.py';
 
 **Aislamiento y Trazabilidad de Errores**: Aquellas transacciones que contengan errores lógicos o de datos serán desviadas a una cola de mensajes fallidos para su inspección. Esto permite que el resto del flujo continúe operando sin interrupciones.
 
-![Pantalla para el integracion Azure Service Bus](../../../assets/sigero/3.png)
-
 #### Librerías y Recursos
 
 ##### Azure SDK
@@ -38,8 +36,6 @@ La interacción con el bus de servicio debe realizarse obligatoriamente a travé
 -	Se recibe una solicitud desde Service Bus.
 -	Si la recepcion se procesa correctamente se envia una respuesta 201 al remitente.
 -	En paralelo los datos recibidos son procesados por la logica del flujo en Logic App para derivarlo a Business Central. Cada proceso tiene definida una cola para evitar que los mensajes se solapen o un flujo elevando afecte una unica cola.
-
-![Pantalla para el diario de productos](../../../assets/sigero/1.jpg)
 
 ### Sincronización de Maestros vía Webhooks
 
@@ -685,234 +681,73 @@ El timeout del request lo ajuste a 30 segundos, dando el tiempo necesario para o
   download={true}
 />
 
-## Recepción de Almacenes
+## Integracion de Tickets
 
-### Obtener lista de Recepciones de Almacén
+Para la integracion de tickets, se dividiran los procesos por tipo de documento, para cada uno se tendra un endpoint especifico que sera consumido por el sistema externo.
 
-**Suscripción del recurso por webhook**
+Los tipos de movimiento son los siguientes:
 
-```json
-POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-Content-Type: application/json
-Authorization: Bearer {access_token}
-{
-  "notificationUrl": UrlNotificationId,
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/warehouseReceipts",
-  "clientState": ""
-}
-```
+   [Transferencia de inventario/ en transito](#transferencias-simples--en-transito)
+ - [Recepción de compra](#recepcion-de-compra)
+ - [Transferencia entrante](#transferencia-entrante)
+ - [Despacho de venta](#despacho-de-venta)
+ - [Transferencia intercompañia](#transferencia-intercompañia)
+ - [Entrada - Prestamo recibidos](#entrada---prestamo-recibidos)
+ - [Salida - Prestamo recibidos](#salida---prestamo-recibidos)
+ - [Entrada - Prestamo otorgados](#entrada---prestamo-otorgados)
+ - [Salida - Prestamo otorgados](#salida---prestamo-otorgados)
+ - [Devolución de ventas](#devolucion-de-ventas)
+ - [Recibo de producción](#recibo-de-produccion)
+ - [Registro de merma](#registro-de-merma)
 
-<Aside type="caution">
-La suscripción de recepciones se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
-```text 
-POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-```
-</Aside>
+### Tranferencias Simples / En transito
 
-**Consumir Endpoints (Manual)**
-
-```json
-GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/DEMO/api/virtualOfficeGroup/integration/v1.0/companies(db22931c-25f2-f011-8405-000d3a88d306)/transferOrders?$expand=transferOrderLines
-Content-Type: application/json
-Authorization: Bearer {access_token}
-```
-
-### Tipos de documentos para la recepcion
-
-pueden diversos tipos de documentos a recepcionar, como por ejemplo:
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| PurchaseOrder | String | Orden de compra generada en Business Central. |
-| InboundTransfer | String | Transferencia entrante desde otro almacén. |
-
-el tipo de documento se especifica en el campo `sourceDocument` dentro de cada línea de la recepción, lo que permite a Business Central identificar correctamente el origen de cada artículo recibido y aplicar las reglas de negocio correspondientes para su procesamiento.
-
-### Creación de Recepciones de Almacenes
+#### Creacion de ticket
 
 ```json
 POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
-  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
 }
 body
 {
-
-  "locationCode": "PRINCIPAL", //Codigo de Almacen
-  "postingDate": "2026-02-10", // Fecha de Registro
-  "sortingMethod": "Item", // Metodo de Orden
-  "shippingAgentCode": "ALEX", //Codigo del transportista
-  "warehouseReceiptLines": [
-    { 
-      "sourceDocument": "PurchaseOrder", // Tipo de documento de origen
-      "sourceNo": "C-PDA0000273", // Numero de documento de origen
-      "sourceLineNo": 50000, // Numero de linea del documento de origen
-      "itemNo": "PROD005", // Codigo del articulo
-      "unitMeasureCode": "KG", // Unidad de medida
-      "quantity": 10 // Cantidad a recibir
-    },
-    { 
-      "sourceDocument": "PurchaseOrder", // Tipo de documento de origen
-      "sourceNo": "C-PDA0000273", // Numero de documento de origen
-      "sourceLineNo": 50000, // Numero de linea del documento de origen
-      "itemNo": "PROD003", // Codigo del articulo
-      "unitMeasureCode": "KG", // Unidad de medida
-      "quantity": 10 // Cantidad a recibir
-    }
-  ]
-}
-```
-
-**Datos obtenidos**
-
-```json
-{
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/warehouseReceipts/$entity",
-    "@odata.etag": "W/\"JzE5OzE2MDIwNTUwMDg1MTM5NjkzODIxOzAwOyc=\"",
-    "id": "418de961-8125-f111-bec2-7ced8da8a20f",
-    "documentNo": "A-REC0000367",
-    "locationCode": "PRINCIPAL",
-    "noSeries": "A-RECEPCIÓN",
-    "zoneCode": "",
-    "binCode": "",
-    "postingDate": "2026-03-21",
-    "vendorShipmentNo": "",
-    "shippingAgentCode": "ALEX",
-    "plate": "",
-    "sortingMethod": "Item",
-    "assignedUserID": "",
-    "systemModifiedAt": "2026-03-21T23:55:05.957Z",
-    "warehouseReceiptLines": [
+    "type": 1,
+    "code": "223232E3",
+    "locationCode":"ALMACEN 1",
+    "destinationLocation": "",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "",
+    "lines":[
         {
-            "@odata.etag": "W/\"JzIwOzE2OTU1NTk0NjkwNjgzMjQ5MTQ2MTswMDsn\"",
-            "id": "428de961-8125-f111-bec2-7ced8da8a20f",
-            "documentNo": "A-REC0000367",
-            "locationCode": "",
-            "lineNo": 1000,
-            "itemNo": "PROD005",
-            "description": "NITRATO DE SODIO",
-            "quantity": 10.00000,
-            "qtyReceive": 10.00000,
-            "qtyOutstanding": 10.00000,
-            "qtyReceived": 0,
-            "unitMeasureCode": "KG",
-            "sourceType": 39,
-            "sourceSubtype": "1",
-            "sourceNo": "C-PDA0000273",
-            "sourceLineNo": 50000,
-            "sourceDocument": "Purchase_x0020_Order",
-            "status": " ",
-            "systemModifiedAt": "2026-03-21T23:55:06.037Z",
-            "sortingSequenceNo": 0
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "quantity": 1,
+            "netWeight": 56.9
         },
         {
-            "@odata.etag": "W/\"JzIwOzE1NzY3MzExOTA3OTA1MDA2NjI4MTswMDsn\"",
-            "id": "438de961-8125-f111-bec2-7ced8da8a20f",
-            "documentNo": "A-REC0000367",
-            "locationCode": "",
-            "lineNo": 2000,
-            "itemNo": "PROD003",
-            "description": "CARNE DE AVE",
-            "quantity": 10.00000,
-            "qtyReceive": 10.00000,
-            "qtyOutstanding": 10.00000,
-            "qtyReceived": 0,
-            "unitMeasureCode": "KG",
-            "sourceType": 39,
-            "sourceSubtype": "1",
-            "sourceNo": "C-PDA0000273",
-            "sourceLineNo": 50000,
-            "sourceDocument": "Purchase_x0020_Order",
-            "status": " ",
-            "systemModifiedAt": "2026-03-21T23:55:06.073Z",
-            "sortingSequenceNo": 0
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
         }
     ]
 }
 ```
 
-**Campos de la respuesta (Encabezado)**
+### Recepcion de compra
 
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos. |
-| @odata.etag |  | Un identificador de versión del registro. |
-| id | Guid | ID de la recepción de almacén creada. |
-| documentNo | Text[20] | Número de documento de la recepción de almacén.
-| locationCode | Text[20] | Código del almacén donde se está realizando la recepción. |
-| noSeries | Text[20] | Serie de numeración utilizada para generar el número de documento. |
-| zoneCode | Text[20] | Código de la zona dentro del almacén (si aplica). |
-| binCode | Text[20] | Código de la ubicación específica dentro del almacén (si aplica). |
-| postingDate | Date | Fecha de registro de la recepción. |
-| vendorShipmentNo | Text[20] | Número de envío del proveedor (si aplica).
-| shippingAgentCode | Text[20] | Código del agente de transporte asociado a la recepción. |
-| plate | Text[20] | Número de placa del vehículo de transporte (si aplica).
-| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas de la recepción. |
-| assignedUserID | Text[20] | ID del usuario asignado para gestionar la recepción (si aplica). |
-| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
-
-
-**Campos de la respuesta (Líneas)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| sourceDocument | Text[50] | Tipo de documento de origen relacionado con la línea de recepción (por ejemplo, "Purchase Order"). |
-| sourceNo | Text[50] | Número del documento de origen que respalda la línea de recepción. |
-| sourceLineNo | Integer | Número de línea específico dentro del documento de origen. | 
-| itemNo | Text[50] | Código del artículo que se está recibiendo. |
-| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad recibida (por ejemplo, "KG"). |
-| quantity | Decimal | Cantidad del artículo que se está recibiendo. |
-
-
-Para poder visualizarlo, el usuario debe navegar a la pantalla de **Recepción Almacén.** Desde esta ventana, es posible visualizar y gestionar todos los documentos de entrada pendientes de recepción de almacén.
-
-**Listado de recepciones de almacén**
-
-![Pantalla listado de recepcion de almacen](../../../assets/sigero/4.png)
-
-** Detalle de la recepción de almacén**
-
-![Recepción de almacén](../../../assets/sigero/5.png)
-
-## Pedidos de Transferencia
-
-### Obtener lista de Pedidos de Transferencia
-
-**Suscripción del recurso por webhook**
-
-```json
-POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-Content-Type: application/json
-Authorization: Bearer {access_token}
-{
-  "notificationUrl": UrlNotificationId,
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/transferOrders",
-  "clientState": ""
-}
-```
-
-<Aside type="caution">
-La suscripción de transferencias se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
-
-```text 
-POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-```
-</Aside>
-
-### Creación de Pedidos de Transferencia
+#### Creacion de ticket
 
 ```json
 POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
@@ -921,376 +756,121 @@ Header{
 }
 body
 {
-    "transferFromCode": "ALMACEN 1", // Codigo del almacen origen
-    "transferToCode": "ALMACEN 2", // Codigo del almacen destino
-    "directTransfer": false, // Define si el movimiento es directo o en transito
-    "transferOrderLines": [
-        {   
-            "itemNo": "MPPA01090", // Codigo del articulo
-            "qty": 10, // Cantidad a transferir
-            "outstandingQuantity": 10, // Cantidad pendiente por transferir
-            "unitMeasureCode": "KG" // Unidad de medida
+    "type": 2,
+    "code": "223232E3",
+    "DocumentNo": "C-PDA0000258",
+    "locationCode":"ALMACEN 1",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9
         },
         {
-            "itemNo": "MPPA01090", // Codigo del articulo
-            "qty": 10, // Cantidad a transferir
-            "outstandingQuantity": 10, // Cantidad pendiente por transferir
-            "unitMeasureCode": "KG" // Unidad de medida
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "locationCode":"ALMACEN 1",
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
         }
     ]
 }
 ```
 
-**Datos obtenidos**
+### Transferencia Entrante
 
-```json
-{
-      "@odata.etag": "W/\"JzIwOzEyMTgyNTIwNDM2NzYxNTg2OTkzMTswMDsn\"",
-      "No": "I-TRAN0000056",
-      "id": "8db86854-4b08-f111-8405-000d3ac0ae45",
-      "transferFromCode": "NUEVO",
-      "transferFromName": "NUEVA LOCACIÓN",
-      "transferFromName2": "",
-      "transferFromAddress": "",
-      "transferFromAddress2": "",
-      "transferFromPostCode": "",
-      "transferFromCity": "",
-      "transferFromCounty": "",
-      "transferFromContact": "",
-      "trsfFromCountryRegionCode": "",
-      "transferToCode": "SIMPLE",
-      "transferToName": "ALMACEN SIMPLE",
-      "transferToName2": "",
-      "transferToAddress": "",
-      "transferToAddress2": "",
-      "transferToPostCode": "",
-      "transferToCity": "",
-      "transferToCounty": "",
-      "transferToContact": "",
-      "trsfToCountryRegionCode": "",
-      "status": "Open",
-      "comment": false,
-      "directTransfer": false,
-      "inTransitCode": "TRANSITO",
-      "shipmentDate": "2026-02-12",
-      "receiptDate": "2026-02-12",
-      "postingDate": "2026-02-12",
-      "shippingAgentCode": "",
-      "plate": "",
-      "systemCreatedAt": "2026-02-12T19:45:07.76Z",
-      "systemModifiedAt": "2026-02-12T19:47:30.867Z",
-      "transferOrderLines": [
-        {
-          "@odata.etag": "W/\"JzE5OzI5MDEzMzkwNDI5NjU0NjExNjcxOzAwOyc=\"",
-          "documentNo": "I-TRAN0000056",
-          "id": "73666881-4b08-f111-8405-000d3ac0ae45",
-          "lineNo": 10000,
-          "itemNo": "PROD001",
-          "qty": 30,
-          "description": "HARINA DE MAIZ ",
-          "unitOfMeasure": "Kilo",
-          "qtytoShip": 30,
-          "qtytoReceive": 0,
-          "qtyShipped": 0,
-          "qtyReceived": 0,
-          "status": "Open",
-          "unitMeasureCode": "KG",
-          "systemModifiedAt": "2026-02-12T19:47:30.85Z"
-        }
-      ]
-    }
-```
-
-**Campos de la respuesta (Encabezado)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | ID pedido de transferencia |
-| No | Text[20] | Código pedido de transferencia |
-| transferFromCode | Text[20] | El código de la ubicación de origen. |
-| transferFromName | Text[100] | Nombre comercial o descripción de la ubicación de origen. |
-| transferFromName2 | Text[50] | Campo de nombre secundario para el origen. |
-| transferFromAddress | Text[100] | Dirección física del almacén de origen. |
-| transferFromAddress2 | Text[50] | Dirección adicional del almacén de origen. |
-| transferFromPostCode | Text[20] | Código postal de la ubicación de origen. |
-| transferFromCity | Text[30] | Ciudad de la ubicación de origen. |
-| transferFromCounty | Text[30] | Provincia, estado o condado de la ubicación de origen. |
-| transferFromContact | Text[100] | Persona de contacto responsable. |
-| trsfToCountryRegionCode | Text[10] | Código ISO del país/región de destino. |
-| status | Text[30] | Indica el ciclo de vida del documento. |
-| comment | Boolean | Indica si existen líneas de comentarios anexadas al encabezado. |
-| directTransfer | Boolean | Define el flujo: false = requiere envío y recepción; true = movimiento instantáneo. |
-| inTransitCode | Text[10] | Código del almacén virtual de tránsito. |
-| shipmentDate | Datetime | Fecha prevista en la que se registra la salida. |
-| receiptDate | Datetime | Fecha prevista en la que se registra la entrada. |
-| postingDate | Datetime | Fecha de registro contable. |
-| shippingAgentCode | Text[10] | Código del transportista. |
-| plate | Text[10] | Campo de texto para la matrícula. |
-| systemCreatedAt | Datetime | Marca de tiempo que indica el momento exacto de la creación del registro. |
-| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
-
-**Campos de la respuesta (Líneas)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | | Un identificador de versión del registro. |
-| id | Guid | ID de la línea. |
-| lineNo | Integer | Es el identificador secuencial de la línea. |
-| itemNo |  | El código o SKU del producto en tu inventario. |
-| description | Text | El nombre comercial del producto. |
-| qty | Decimal/Integer | La cantidad total que se planea transferir. |
-| qtytoShip | Decimal/Integer | Cantidad pendiente por enviar. |
-| qtytoReceive | Decimal/Integer | Cantidad pendiente por recibir. |
-| qtyShipped | Decimal/Integer | Cantidad ya enviada. |
-| qtyReceived | Decimal/Integer | Cantidad ya recibida. |
-| status | Text | Estado de la línea (Open, Released, etc.). |
-| unitOfMeasure | Text | Unidad de medida legible. |
-| unitMeasureCode | Text | Código de la unidad de medida (ej. KG). |
-| lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
-
-### Creacion de Envios de Almacén
-
-En Business Central, la creación de un Envío de Almacén a partir de un Pedido de Transferencia no es automática por el simple hecho de registrar, sino que depende estrictamente de la jerarquía de configuración en la ficha del almacén de origen.
+#### Creacion de ticket
 
 ```json
 POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
-Header{
-  Content-Type: application/json
-  Authorization: Bearer {SharedAccessSignature} 
-  companyID: {companyID} // Id de la compañía en Business Central
-  environment: {environment} // Nombre del ambiente en Business Central
-  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
-}
-body
-{
-  "environment":{environment}, // Nombre del entorno
-  "companyName":{companyID}, //codigo de la compañia
-  "transferOrderID": "8db86854-4b08-f111-8405-000d3ac0ae45", // ID del pedido de transferencia
-}
-```
-
-**Datos Obtenidos**
-
-```json
-{
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/warehouseShipments/$entity",
-    "@odata.etag": "W/\"JzE5OzU3ODY5MDI5NDgxOTI4MDc4MDcxOzAwOyc=\"",
-    "id": "6365b89b-171e-f111-8405-7ced8da8a20f",
-    "locationCode": "ALMACEN 1",
-    "no": "A-ENV00003",
-    "sortingMethod": "None",
-    "zoneCode": "",
-    "documentStatus": "Partially_x0020_Shipped",
-    "postingDate": "2025-11-09",
-    "shippingAgentCode": "",
-    "shipmentMethodCode": "",
-    "status": "Released",
-    "systemModifiedAt": "2026-03-12T13:35:39.263Z",
-    "warehouseShipmentLines": [
-        {
-            "@odata.etag": "W/\"JzIwOzE2Njc2MTY5MDUwMzQyMDgyNzAyMTswMDsn\"",
-            "id": "6465b89b-171e-f111-8405-7ced8da8a20f",
-            "no": "A-ENV00003",
-            "lineNo": 10000,
-            "sourceType": 5741,
-            "sourceSubtype": "0",
-            "sourceDocument": "Outbound_x0020_Transfer",
-            "sourceLineNo": 10000,
-            "quantity": 100,
-            "itemNo": "MPPA01090",
-            "description": "Alimento para Pollos",
-            "unitMeasureCode": "KG",
-            "qtyperUnitMeasure": 1
-        }
-    ]
-}
-```
-**campos de la respuesta (Encabezado)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | ID del envío de almacén creado. |
-| no | Text[20] | Número de documento del envío de almacén. |
-| locationCode | Text[20] | Código del almacén desde el cual se realiza el envío. |
-| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas del envío. |
-| zoneCode | Text[20] | Código de la zona dentro del almacén (si aplica). |
-| documentStatus | Text[20] | Estado del documento (ej. "Partially Shipped"). |
-| postingDate | Date | Fecha de registro del envío. |
-| shippingAgentCode | Text[20] | Código del agente de transporte asociado al envío. |
-| shipmentMethodCode | Text[20] | Código del método de envío utilizado. |
-| status | Text[20] | Estado del envío (ej. "Released"). |
-| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
-
-
-**Campos de la respuesta (Líneas)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | ID de la línea del envío. |
-| lineNo | Integer | Número de línea dentro del envío. |
-| sourceType | Integer | Código que representa el tipo de documento de origen |
-| sourceSubtype | Text[10] | Subtipo del documento de origen (si aplica). |
-| sourceDocument | Text[50] | Tipo de documento de origen (ej. "Outbound Transfer"). |
-| sourceLineNo | Integer | Número de línea del documento de origen que respalda esta línea del envío. |
-| itemNo | Text[50] | Código del artículo que se está enviando. |
-| description | Text[100] | Nombre comercial del artículo. |
-| quantity | Decimal | Cantidad del artículo que se está enviando. |
-| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad enviada |
-| qtyperUnitMeasure | Decimal | Cantidad de unidades por cada unidad de medida (si aplica). |
-
-al momento de lanzar esta peticion creara automaticamente el envio del almacen del pedido de transferencia, siempre y cuando en la configuración del almacén de origen, se tenga seleccionado que el proceso de transferencias genere envíos de almacén.
-
-Se podra visualizar el envío de almacén creado desde la pantalla de **Envios de Almacén** en Business Central, donde se podrán gestionar los envíos generados a partir de los pedidos de transferencia.
-
-![Envios de almacén](../../../assets/sigero/6.png)
-
-![Detalle del envío de almacén](../../../assets/sigero/7.png)
-
-### Creacion Picking de Almacén
-
-En business central, la creación de un Picking de Almacén a partir de un Envío de Almacén no es automática por el simple hecho de registrar, sino que depende estrictamente de la jerarquía de configuración en la ficha del almacén de origen.
-
-El picking de almacen se crear a partir de cada linea del envio de almacen, por lo que para crear el picking de almacen se debe consumir el mismo endpoint que para la creación del envio de almacen, pero enviando en el body la información de la linea del pedido de transferencia y no del encabezado.
-
-```json
-POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
-  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
 }
+body
 {
-  "environment":{environment}, // Nombre del entorno
-  "companyName":{companyID}, //codigo de la compañia
-  "warehouseShipmentLineID": "8db86854-4b08-f111-8405-000d3ac0ae45", // ID del linea del envio de almacen
-}
-```
-
-**Datos Obtenidos**
-
-```json
-{
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3ac04986)/warehousePickings/$entity",
-    "@odata.etag": "W/\"JzE5OzU3ODY5MDI5NDgxOTI4MDc4MDcxOzAwOyc=\"",
-    "id": "6365b89b-171e-f111-8405-7ced8da8a20f",
-    "locationCode": "ALMACEN 1",
-    "no": "A-PIC00003",
-    "sortingMethod": "None",
-    "sourceDocument": "Outbound_x0020_Transfer",
-    "sourceno": "I-TRAN0000056",
-    "postingDate": "2025-11-09",
-    "shipmentDate": "2025-11-09",
-    "systemModifiedAt": "2026-03-12T13:35:39.263Z",
-    "warehouseActivityLines": [
+    "type": 3,
+    "code": "223232E3",
+    "DocumentNo": "1006",
+    "locationCode":"ALMACEN 1",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "DR4356",
+    "lines":[
         {
-            "@odata.etag": "W/\"JzIwOzE2Njc2MTY5MDUwMzQyMDgyNzAyMTswMDsn\"",
-            "id": "6465b89b-171e-f111-8405-7ced8da8a20f",
-            "no": "A-PIC00003",
-            "lineNo": 10000,
-            "sourceType": 5741,
-            "sourceSubtype": "0",
-            "sourceDocument": "Outbound_x0020_Transfer",
-            "sourceLineNo": 10000,
-            "quantity": 100,
-            "itemNo": "MPPA01090",
-            "description": "Alimento para Pollos",
-            "unitMeasureCode": "KG",
-            "qtyperUnitMeasure": 1
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
         }
     ]
 }
 ```
 
-**Campos de la respuesta (Encabezado)**
+### Despacho de Venta
 
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | ID del picking de almacén creado. |
-| no | Text[20] | Número de documento del picking de almacén. |
-| locationCode | Text[20] | Código del almacén desde el cual se realiza el picking. |
-| sortingMethod | Text[20] | Método de ordenamiento utilizado para las líneas del picking. |
-| sourceDocument | Text[50] | Tipo de documento de origen (ej. "Outbound Transfer"). |
-| sourceno | Text[20] | Número del documento de origen que respalda este picking. |
-| postingDate | Date | Fecha de registro del picking. |
-| shipmentDate | Date | Fecha de envío asociada al picking. |
-| systemModifiedAt | Datetime | Fecha y hora de la última modificación del registro. |
-
-
-**Campos de la respuesta (Líneas)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | ID de la línea del picking. |
-| lineNo | Integer | Número de línea dentro del picking. |
-| sourceType | Integer | Código que representa el tipo de documento de origen |
-| sourceSubtype | Integer | Subtipo del documento de origen (si aplica). |
-| sourceDocument | Text[20] | Tipo de documento de origen. |
-| sourceLineNo | Integer | Número de línea del documento de origen que respalda esta línea del picking. |
-| itemNo | Text[20] | Código del artículo que se está preparando para envío. |
-| description | Text[100] | Nombre comercial del artículo. |
-| quantity | Decimal | Cantidad del artículo que se está preparando para envío. |
-| unitMeasureCode | Text[20] | Código de la unidad de medida utilizada para la cantidad del picking. |
-| qtyperUnitMeasure | Decimal | Cantidad de unidades por cada unidad de medida. |
-
-al momento de lanzar esta peticion creara automaticamente el picking del almacen del envio de transferencia, siempre y cuando en la configuración del almacén de origen, se tenga seleccionado que el proceso de transferencias genere envíos de almacén.
-
-Se podra visualizar el picking de almacén creado desde la pantalla de **Pickings de Almacén** en Business Central, donde se podrán gestionar los pickings generados a partir de los envíos de transferencia.
-
-![Pickings de almacén](../../../assets/sigero/8.png)
-
-![Detalle del picking de almacén](../../../assets/sigero/9.png)
-
-## Ajuste de Inventario
-
-### Plantillas y secciones de diario
-
-Para la creacion de ajuste de inventario a partir de la API, se deben configurar y consultar la plantillas y secciónes de diario a utilizar para crear los asientos en el
- diario de productos.
-
-Endpoint para consultar plantillas y secciones de diario:
+#### Creacion de ticket
 
 ```json
-GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/itemJournalTemplates?$expand=itemJournalSections
-Content-Type: application/json
-Authorization: Bearer {access_token}
-```
-
-**Datos obtenidos**
-
-```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/itemJournalTemplates",
-    "value": [
+    "type": 4,
+    "code": "223232E3",
+    "DocumentNo": "101002",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "DR4356",
+    "lines":[
         {
-            "@odata.etag": "W/\"JzE5Ozk4NTI4NTExMDM3NjUyMjYwMDAxOzAwOyc=\"",
-            "id": "e41ad6ab-1308-f111-8405-000d3ac0ae45",
-            "name": "PRODUCTO",
-            "description": "Diario Producto",
-            "reasonCode": "",
-            "systemModifiedAt": "2026-02-12T13:06:46.657Z",
-            "itemJournalSections": [
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "reasonCode": "PRUEBA",
+            "quantity": 3,
+            "netWeight": 56.9,
+            "lots":[
                 {
-                  "@odata.etag": "W/\"JzIwOzE3MzY0ODAyMzIwNzUzNzI2NTA0MTswMDsn\"",
-                  "id": "e51ad6ab-1308-f111-8405-000d3ac0ae45",
-                  "name": "GENERICO",
-                  "description": "Diario gen\u00e9rico",
-                  "noSerie": "",
-                  "reasonCode": "",
-                  "systemModifiedAt": "2026-02-12T13:06:46.683Z"
+                    "lot": "gdgdgdg",
+                    "quantity": 1
+                },
+                {
+                    "lot": "gdgdgdgdsd",
+                    "quantity": 2
+                }
+            ]
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "reasonCode": "PRUEBA",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "lots":[
+                {
+                    "lot": "gdgdgdg",
+                    "quantity": 1
                 }
             ]
         }
@@ -1298,139 +878,320 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Campos de la respuesta (Plantilla)**
+### Transferencia Intercompañia
 
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
-| id | Guid | El ID de la plantilla de diario. |
-| name | Code[10] | nambre de la plantilla del Diario |
-| description | Text[100] | descripción de la seccion de diario |
-| reasonCode | Code[10] | Codigo de motivo asociado a la plantilla |
-| systemModifiedAt | Text[20] | Fecha de la ultima modificacion |
-
-**Campos de la respuesta (Secciones)**
-
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| id | Guid | El ID de la seccion de diario. |
-| code | Code[10] | nombre de la seccion del Diario |
-| description | Text[100] | descripción de la seccion de diario |
-| noSerie | Code[20] | serie numerica utilizada en la seccion | 
-| reasonCode | Code[10] | Codigo de motivo asociado a la Sección |
-| systemModifiedAt | Text[20] | Fecha de la ultima modificacion |
-
-### Ajuste positivo
+#### Creacion de ticket
 
 ```json
 POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
-Header{
-  Content-Type: application/json
-  Authorization: Bearer {sas_token}
-  companyID: {companyID} // Id de la compañía en Business Central
-  environment: {environment} // Nombre del ambiente en Business Central
-  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
-}
-{
-    "environment":{environment}, // Nombre del entorno
-    "companyName":{companyID}, //codigo de la compañia 
-    "journalTemplateName": "GENERAL", // codigo de plantilla de diario    
-    "journalBatchName": "AJUSTE", // codigo de seccion de diario
-    "itemNo": "1002", // Codigo del Producto
-    "entryType": "Positive Adjmt.", // Tipo de ajuste: Positivo
-    "documentNo": "4874", //Numero de documento
-    "locationCode": "PRINCIPAL", //Codigo el Almacen
-    "quantity": 40 //Cantidad a ajustar
-}
-```
-
-### Ajuste Negativo
-
-```json
-POST
-https://{namespace}.servicebus.windows.net/{queue_name}/messages
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
-  BrokerProperties: {CorrelationId:{correlationId}} // CorrelationId para rastreo del mensaje
 }
+body
 {
-    "environment":{environment}, // Nombre del entorno
-    "companyName":{companyID}, //codigo de la compañia
-    "journalTemplateName": "GENERAL", // codigo de plantilla de diario    
-    "journalBatchName": "AJUSTE", // codigo de seccion de diario
-    "itemNo": "1002", // Codigo del Producto
-    "entryType": "Negative Adjmt.", //Tipo de ajuste: Negativo
-    "documentNo": "4874", //Numero de documento a vincular con el ajuste
-    "locationCode": "PRINCIPAL", //Codigo el Almacen
-    "quantity": 40 //Cantidad a ajustar
+    "type": 5,
+    "code": "223232E3",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "DestinationLocation": "ALMACEN 2",
+            "originCompany": "ALIB5",
+            "DestinationCompany": "IDTE3",
+            "quantity": 3,
+            "netWeight": 56.9,
+            "totalCost": 0,
+            
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "DestinationLocation": "ALMACEN 2",
+            "originCompany": "ALIB5",
+            "DestinationCompany": "IDTE3",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "totalCost": 0,
+        }
+    ]
 }
 ```
 
-**Datos obtenidos**
+### Entrada - Prestamo recibidos
+
+#### Creacion de ticket
 
 ```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
 {
-  "@odata.etag": "W/\"JzE5OzUyNzU3Nzg0NzIwNzgxMTYwNjkxOzAwOyc=\"",
-  "journalId": "af6ea8d5-2c08-f111-8405-002248d31bd2",
-  "journalTemplateName": "PRODUCTO",
-  "journalBatchName": "AJUSTE",
-  "lineNo": 20000,
-  "itemNo": "PROD001",
-  "description": "HARINA DE MAIZ ",
-  "entryType": "Positive Adjmt.",
-  "sourceNo": "",
-  "documentNo": "4874",
-  "locationCode": "PRINCIPAL",
-  "quantity": 40,
-  "invoicedQuantity": 40,
-  "unitAmount": 55222.331,
-  "unitCost": 55222.331,
-  "amount": 2208893.24,
-  "discountAmount": 0,
-  "systemModifiedAt": "2026-02-12T16:06:52.377Z"
+    "type": 6,
+    "code": "223232E3",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "totalCost": 0,
+            
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN PTO",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "totalCost": 0,
+        }
+    ]
 }
 ```
 
-**Campos de la respuesta**
+### Salida - Prestamo recibidos
 
-| Nombre | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| @odata.context |  | La URL que define el esquema y el origen de los datos |
-| @odata.etag | String | Un identificador de versión del registro. |
-| journalId | Guid | El ID de la cabecera del diario. |
-| journalTemplateName | Text[10] | Nombre de la Plantilla del Diario. Define la estructura y el comportamiento del diario. |
-| journalBatchName | Text[10] | Nombre del Sección. |
-| lineNo | Integer | El número de línea. |
-| itemNo | Text[20] | El código del producto. |
-| description | Text[100] | Texto descriptivo de la línea. |
-| entryType | Text[30] | Define la naturaleza del movimiento. |
-| documentNo | Text[30] | El número de documento externo. |
-| locationCode | Text[10] | Código del Almacén. |
-| quantity | Decimal | Cantidad física que entrará o saldrá del inventario. |
-| invoicedQuantity | Decimal | Cantidad que será procesada financieramente. |
-| unitAmount | Decimal | Precio unitario del producto en la línea. |
-| unitCost | Decimal | Costo unitario que se utilizará para valorar el inventario. |
-| amount | Decimal | El valor total de la línea. |
-| discountAmount | Decimal | Valor monetario del descuento aplicado a la línea. |
-| systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+#### Creacion de ticket
 
-### Asientos de diario en Business Central
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 7,
+    "code": "223232E3",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "totalCost": 0,
+            
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN PTO",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "totalCost": 0,
+        }
+    ]
+}
+```
 
-Los asientos de diario se pueden visualizar en la venta de **diario de productos**.
+### Entrada - Prestamo otorgados
 
-**Listado de asientos de diario**
+#### Creacion de ticket
 
-![Pantalla para el diario de productos](../../../assets/sigero/2.png)
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 1,
+    "code": "223232E3",
+    "locationCode":"ALMACEN PTO",
+    "destinationLocation": "ALMACEN 1",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
+        }
+    ]
+}
+```
 
-<Aside type="note">
- La revisión y registros de los asientos de diario seran realizados por el usuario de Business Central.
-</Aside>
+### Salida - Prestamo otorgados
+
+#### Creacion de ticket
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 1,
+    "code": "223232E3",
+    "locationCode":"ALMACEN 1",
+    "destinationLocation": "ALMACEN PTO",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
+        }
+    ]
+}
+```
+
+### Devolucion de ventas
+
+#### Creacion de ticket
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 8,
+    "code": "223232E3",
+    "DocumentNo": "1006",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9
+        }
+    ]
+}
+```
+
+### Recibo de Produccion 
+
+#### Creacion de ticket
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 9,
+    "code": "223232E3",
+    "DocumentNo": "1006",
+    "locationCode":"ALMACEN 1",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "netWeight": 56.9
+        }
+    ]
+}
+```
+
+### Registro de merma
+
+
+#### Creacion de ticket
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+}
+body
+{
+    "type": 8,
+    "code": "223232E3",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "locationCode":"ALMACEN 1",
+            "quantity": 1,
+            "netWeight": 56.9
+        }
+    ]
+}
+```
 
 ## Consumo Pedidos de Compra
 
