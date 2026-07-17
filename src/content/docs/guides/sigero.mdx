@@ -15,7 +15,7 @@ import examplePython from '../../../assets/sigero/js/send_receive_bus.py';
 
 #### Lineamiento de Integración
 
-**Garantía de Entrega Asíncrona**: Sigero depositará las transacciones en colas de mensajería independientes de la disponibilidad inmediata de Business Central. Esto asegura que la operación nunca se pierda por saturación del ERP 
+**Garantía de Entrega Asíncrona**: Sigero depositará las transacciones en colas de mensajería independientes de la disponibilidad inmediata de Business Central. Esto asegura que la operación nunca se pierda por saturación del ERP.
 
 **Confirmación de Recepción en Cola**: El servicio de mensajería emitirá un acuse de recibo inmediato cada vez que una inserción sea depositada correctamente en la cola. Esta notificación actúa como una garantía de persistencia, permitiendo que el sistema externo confirme el envío y libere la transacción.
 
@@ -33,7 +33,7 @@ La interacción con el bus de servicio debe realizarse obligatoriamente a travé
 
 #### Flujo General del proceso
 
--	Se recibe una solicitud desde Service Bus.
+- Se recibe una solicitud desde Service Bus.
 -	Si la recepción se procesa correctamente se envía una respuesta 201 al remitente.
 -	En paralelo los datos recibidos son procesados por la lógica del flujo en Logic App para derivarlo a Business Central. Cada proceso tiene definida una cola para evitar que los mensajes se solapen o un flujo elevado afecte una única cola.
 
@@ -54,7 +54,7 @@ Entidades a utilizar
 
 #### Lineamiento de Integración
 
-**Notificación de Eventos en Business Central**:  En el momento en que se produzca una creación o modificación en Business Central, el Webhook disparará una notificación hacia la Sigero.
+**Notificación de Eventos en Business Central**: En el momento en que se produzca una creación o modificación en Business Central, el Webhook disparará una notificación hacia Sigero.
 **Vinculación de Identidades (ID Único)**: Todo registro guardado en Sigero (Clientes, Artículos, Proveedores, etc.) debe contener obligatoriamente el ID del registro original de Business Central (SystemId/GUID)
 **Suscripción por Entidad**: Se configurará un Webhook independiente por cada entidad maestra (por compañía y ambiente).
 **Renovación de suscripción**: El sistema debe enviar una petición a la API de suscripciones de Business Central para actualizar la fecha y hora de expiración de cada Webhook activo.
@@ -79,7 +79,7 @@ Antes de poder utilizar las APIs, Webhooks e integrar aplicaciones externas con 
 
 #### Credenciales requeridas
 
-1.	URL del ambiente de Business Central 
+1. URL del ambiente de Business Central 
     -	URL de producción o ambiente de pruebas
     -	Ejemplo: https://api.businesscentral.dynamics.com/v2.0/[tenantId]/[environmentName]/company([companyId])
     -	**TenantId**: Identificador único del Proveedor.
@@ -89,11 +89,11 @@ Antes de poder utilizar las APIs, Webhooks e integrar aplicaciones externas con 
     -	**Client ID (Aplicación ID)**: Identificador de la aplicación registrada
     -	**Client Secret**: Clave secreta de la aplicación.
 3. Credenciales de Azure AD 
-    -	Shared Access Signature (SAS) o certificado para autenticación segura.
+    - Shared Access Signature (SAS) o certificado para autenticación segura.
 3.	Permisos y alcances (Scopes) 
-    -   Definir los permisos necesarios para acceder a las APIs
-    -	Ejemplo: https://api.businesscentral.dynamics.com/.default
-    -	Token de acceso (OAuth 2.0)
+    - Definir los permisos necesarios para acceder a las APIs
+    - Ejemplo: https://api.businesscentral.dynamics.com/.default
+    - Token de acceso (OAuth 2.0)
 
 ### Recursos para pruebas
 
@@ -191,7 +191,7 @@ Para interactuar con una API de Business Central, normalmente sigues estos pasos
 
 ### El límite de consultas
 
-Business Central utiliza un sistema de cuotas basado en el tiempo. Si se exceden, la API devolverá un error **HTTP 429 (Too Many Requests)**.
+Business Central utiliza un sistema de cuotas basado en el tiempo. Si se exceden, la API devolverá un error **HTTP 429 (Demasiadas Solicitudes)**.
 
 |ConceptoLímite (SaaS) | Solicitudes Concurrentes |
 | ------- | -----------|
@@ -202,13 +202,13 @@ Business Central utiliza un sistema de cuotas basado en el tiempo. Si se exceden
 
 Business Central puede un máximo de **20,000** registros por petición. Si tu consulta supera ese número, Business Central cortará la respuesta.
 
-### Error 429 (Too Many Requests)
+### Error 429 (Demasiadas Solicitudes)
 
-Al realizar consultas directas vía API, el sistema emisor es el responsable único de gestionar la saturación del ERP. Para prevenir errores 429 (Too Many Requests), 
+Al realizar consultas directas vía API, el sistema emisor es el responsable único de gestionar la saturación del ERP. Para prevenir errores 429 (Demasiadas Solicitudes), 
 el cliente debe implementar una cola local de reintentos que respete el encabezado `Retry-After` de Business Central. Esta propiedad indica el tiempo recomendado que el cliente debe esperar antes de volver a intentar la solicitud.
 
 <Aside type="note">
-  La inserción de datos a traves de Service Bus no está sujeta a este límite de consultas, ya que mitigara la saturación mediante la gestión de colas y reintentos automáticos en caso de bloqueos temporales.
+  La inserción de datos a través de Service Bus no está sujeta a este límite de consultas, ya que mitigará la saturación mediante la gestión de colas y reintentos automáticos en caso de bloqueos temporales.
 </Aside>
 
 ### Uso de $select
@@ -259,7 +259,7 @@ https://api.businesscentral.dynamics.com/v2.0/.../items?$select=number,displayNa
 
 Define el límite superior de registros que el servidor debe retornar en el cuerpo de la respuesta.
 
-ejemplo: Obtener los primeros 5 registros de los articulos.
+ejemplo: Obtener los primeros 5 registros de los artículos.
 
 ```json
 /items?$top=5
@@ -282,7 +282,7 @@ GET .../salesOrders?$orderby=orderDate desc, customerName asc
 
 ## Uso de Webhook con Business Central
 
-Los Webhook son mecanismos de comunicación que permiten la integración en tiempo real entre Business Central y aplicaciones externas. 
+Los Webhooks son mecanismos de comunicación que permiten la integración en tiempo real entre Business Central y aplicaciones externas. 
 
 <Aside type="caution">
     **Importante**: El id de las compañías debe ser guardado localmente en tu aplicación para utilizarlo en consultas posteriores. Esto evitará tener que consultar la lista de compañías en cada operación y mejorará el rendimiento de tu integración.
@@ -290,7 +290,7 @@ Los Webhook son mecanismos de comunicación que permiten la integración en tiem
 
 ### Creación de suscripción
 
-Para implementar Webhook con Business Central, es necesario seguir un proceso de configuración que incluye la creación del endpoint y la suscripción a eventos.
+Para implementar Webhooks con Business Central, es necesario seguir un proceso de configuración que incluye la creación del endpoint y la suscripción a eventos.
 Pasos para la configuración:
 
     1.	Creación de la Suscripción mediante API
@@ -313,7 +313,7 @@ body: {
 
 Parámetros de la suscripción:
 
-- **notificationUrl**: URL de tu endpoint que recibirá las notificaciones.
+- **notificationUrl**: URL de tu `endpoint` que recibirá las notificaciones.
 - **resource**: Entidad a la que te suscribes. Ejemplo: 
             -	**companies(companyId)/purchaseOrders** - Órdenes de compra.
 - **clientState**: Token secreto opcional para validar que las notificaciones vienen de BC.
@@ -323,7 +323,7 @@ Parámetros de la suscripción:
 </Aside>
 
 <Aside type="caution">
-   Business Central utiliza la combinación de la notificationUrl y el resource como una llave única en su base de datos de gestión de eventos. Si intentas registrar una suscripción con una URL que ya existe para ese mismo recurso (incluso si es para una empresa o un entorno diferente dentro del mismo tenant), el sistema devolverá un error.
+   Business Central utiliza la combinación de la `notificationUrl` y el `resource` como una llave única en su base de datos de gestión de eventos. Si intentas registrar una suscripción con una URL que ya existe para ese mismo recurso (incluso si es para una empresa o un entorno diferente dentro del mismo `tenant`), el sistema devolverá un error.
 </Aside>
 
 **Respuesta esperada (JSON)**
@@ -379,7 +379,7 @@ Las suscripciones expiran máximo en 3 días, por lo que debes renovarlas perió
 </Aside>
 
 ```json
-PATCH 
+PATCH
 https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions({subscriptionId})
 Content-Type: application/json 
 If-Match: @odata.etag (o el ETag específico de la suscripción) 
@@ -434,7 +434,7 @@ Authorization: Bearer {access_token}
 
 Para listar las suscripciones activas en el entorno de Business Central realiza una petición GET al recurso de `subscriptions`.
 
-```
+```json
 GET {{https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions}} 
 Authorization: Bearer {access_token}
 ```
@@ -701,7 +701,7 @@ Las transferencias simples o en tránsito son aquellas que se realizan entre alm
 
 ###### 
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -767,7 +767,7 @@ las recepciones de compra son los movimientos de inventario que se generan al re
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -834,7 +834,7 @@ las transferencias entrantes son movimientos de inventario que se producen cuand
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -911,7 +911,7 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 | quantity | Decimal | Cantidad de artículos en el lote. (opcional) |
 
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -996,7 +996,7 @@ Las transferencias intercompañía son movimientos de inventario que se realizan
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 | totalCost | Decimal | Costo total de los artículos en la línea. |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1066,7 +1066,7 @@ Las entrada - prestamo recibidos son movimientos de inventario que se generan cu
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 | totalCost | Decimal | Costo total de los artículos en la línea. |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1130,7 +1130,7 @@ Las salida - prestamo recibidos son movimientos de inventario que se generan cua
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 | totalCost | Decimal | Costo total de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1197,7 +1197,7 @@ La entrada - prestamo otorgados son movimientos de inventario que se generan cua
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1268,7 +1268,7 @@ La Salida - prestamo otorgados son movimientos de inventario que se generan cuan
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1334,7 +1334,7 @@ La devolucion de ventas es el proceso mediante el cual los productos vendidos so
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1399,7 +1399,7 @@ El recibo de producción es el proceso mediante el cual los productos fabricados
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -1459,7 +1459,7 @@ EL registro de merma es el proceso mediante el cual se documenta la pérdida de 
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
-#### Creacion de ticket
+#### Creación de ticket
 
 ```json
 POST
@@ -2224,7 +2224,3 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 | inTransit | Boolean | Si está activo para transferencia en tránsito |
 | systemCreatedAt | Datetime | Marca de tiempo (UTC) de la fecha en que se registró el código de motivo |
 | systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
-
-
-
-
