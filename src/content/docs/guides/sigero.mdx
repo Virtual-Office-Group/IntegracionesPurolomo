@@ -1,6 +1,6 @@
 ---
 title: 'Integraciones Sigero - Business Central'
-description: Guia para integraciones con el Sistema Sigero y Business Central.
+description: Guía para integraciones con el Sistema Sigero y Business Central.
 ---
 
 import { LinkCard } from '@astrojs/starlight/components';
@@ -34,8 +34,8 @@ La interacción con el bus de servicio debe realizarse obligatoriamente a travé
 #### Flujo General del proceso
 
 -	Se recibe una solicitud desde Service Bus.
--	Si la recepcion se procesa correctamente se envia una respuesta 201 al remitente.
--	En paralelo los datos recibidos son procesados por la logica del flujo en Logic App para derivarlo a Business Central. Cada proceso tiene definida una cola para evitar que los mensajes se solapen o un flujo elevando afecte una unica cola.
+-	Si la recepción se procesa correctamente se envía una respuesta 201 al remitente.
+-	En paralelo los datos recibidos son procesados por la lógica del flujo en Logic App para derivarlo a Business Central. Cada proceso tiene definida una cola para evitar que los mensajes se solapen o un flujo elevado afecte una única cola.
 
 ### Sincronización de Maestros vía Webhooks
 
@@ -75,15 +75,15 @@ Complementando la arquitectura de eventos, habilitaremos el consumo manual de da
 
 ### Configuración de credenciales de Business Central
 
-Antes de poder utilizar las apis, Webhooks e integrar aplicaciones externas con Business Central, es fundamental contar con las credenciales de acceso necesarias.
+Antes de poder utilizar las APIs, Webhooks e integrar aplicaciones externas con Business Central, es fundamental contar con las credenciales de acceso necesarias.
 
 #### Credenciales requeridas
 
 1.	URL del ambiente de Business Central 
     -	URL de producción o ambiente de pruebas
-    -	Ejemplo:https://api.businesscentral.dynamics.com/v2.0/[tenantId]/[environmentName]/company([companyId])
+    -	Ejemplo: https://api.businesscentral.dynamics.com/v2.0/[tenantId]/[environmentName]/company([companyId])
     -	**TenantId**: Identificador único del Proveedor.
-    -	**enviromentName**: Nombre del ambiente a trabajar.
+    -	**environmentName**: Nombre del ambiente a trabajar.
     -	**companyId**: Identificador de la compañía
 2.	Credenciales OAuth 2.0 
     -	**Client ID (Aplicación ID)**: Identificador de la aplicación registrada
@@ -91,9 +91,9 @@ Antes de poder utilizar las apis, Webhooks e integrar aplicaciones externas con 
 3. Credenciales de Azure AD 
     -	Shared Access Signature (SAS) o certificado para autenticación segura.
 3.	Permisos y alcances (Scopes) 
-    -   Definir los permisos necesarios para acceder a las Apis
+    -   Definir los permisos necesarios para acceder a las APIs
     -	Ejemplo: https://api.businesscentral.dynamics.com/.default
-    -	Token de acceso (Oauth 2.0)
+    -	Token de acceso (OAuth 2.0)
 
 ### Recursos para pruebas
 
@@ -175,7 +175,7 @@ Authorization: Bearer {access_token}
 | systemModifiedAt |	Datetime |	Fecha de última modificación. |
 
 
-## Uso de la Api en Business Central
+## Uso de la API en Business Central
 
 Para interactuar con una API de Business Central, normalmente sigues estos pasos:
 
@@ -550,144 +550,113 @@ El parámetro "changeType" indica el tipo de cambio:
 - Deleted: Se elimino el registro.
 - Collection: Significa que Business Central envía una notificación de que se han creado o cambiado muchos registros. Se aplica un filtro al recurso, lo que permite al suscriptor solicitar a todas las entidades que cumplan con el filtro.
 
-
 <Aside type="caution">
   Las notificaciones no se envían inmediatamente cuando el registro cambia. Al retrasar las notificaciones, Business Central puede asegurarse de que solo se envíe una notificación, aunque el registro haya cambiado varias veces en cuestión de segundos. Por defecto, el sistema espera 30 segundos tras el primer cambio en una entidad antes de enviar la notificación. Durante el retraso de 30 segundos, si se modifican más de 1.000 registros, se envía una única notificación.
 </Aside>
 
-## Uso de SDK para el Azure Service Bus
 
-### Ejemplos de codigo
+## Integración de Tickets
 
-<LinkCard
-  title="Azure Service Bus client library samples for JavaScript"
-  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-js/service-bus-javascript/"
-  target={'_blank'}
-/>
+### Estructura básica de la integración
 
-<LinkCard
-  title="Azure Service Bus client library samples for TypeScript"
-  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-js/service-bus-typescript/"
-  target={'_blank'}
-/>
+```json
+{
+    "type": 1,
+    "code": "2232326E3",
+    "sessionID": 0,
+    "locationCode":"ALMACEN 1",
+    "destinationLocation": "",
+    "shippingAgentCode": "CDGD",
+    "shippingVehicleCode": "PRUEBA",
+    "lines":[
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "reasonCode": "PRUEBA",
+            "locationCode": "EAST",
+            "DestinationLocation":"",
+            "quantity": 1,
+            "netWeight": 56.9,
+            "tareWeight": 0,
+            "totalCost": 123.56,
+            "originCompany": "",
+            "DestinationCompany": "",
+            "lots":[
+                {
+                    "lot": "gdgdgdg",
+                    "quantity": 2
+                },
+                {
+                    "lot": "gdgdgdgdsd",
+                    "quantity": 3
+                }
+            ]
 
-
-<LinkCard
-  title="Azure Service Bus client library samples for Python"
-  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-python/servicebus-samples/"
-  target={'_blank'}
-/>
-
-<LinkCard
-  title="Azure Service Bus client library samples for .NET"
-  href="https://learn.microsoft.com/en-us/samples/azure/azure-sdk-for-net/azuremessagingservicebus-samples/"
-  target={'_blank'}
-/>
-
-### Generar SAS Token para autenticación
-
-Para autenticarte con Azure Service Bus, puedes generar un token SAS (Shared Access Signature) utilizando el siguiente código de ejemplo en Python. Este token se utiliza para autorizar tus solicitudes al Service Bus.
-
-```python
-
-import hmac
-import hashlib
-import base64
-import time
-import urllib.parse
-import requests
-
-def get_auth_token(sb_uri, key_name, key):
-    """Genera el token SAS para la cabecera Authorization"""
-    # El URI debe estar codificado para el string de firma
-    ttl = int(time.time()) + 3600  # Válido por 1 hora
-    expiry = str(ttl)
-    
-    encoded_uri = urllib.parse.quote_plus(sb_uri)
-    string_to_sign = encoded_uri + '\n' + expiry
-    
-    # Firma HMAC-SHA256
-    key_bytes = key.encode('utf-8')
-    string_to_sign_bytes = string_to_sign.encode('utf-8')
-    signature = base64.b64encode(hmac.new(key_bytes, string_to_sign_bytes, hashlib.sha256).digest())
-    
-    # Construcción del token codificado
-    auth_format = 'SharedAccessSignature sr={0}&sig={1}&se={2}&skn={3}'
-    token = auth_format.format(
-        encoded_uri, 
-        urllib.parse.quote_plus(signature), 
-        expiry, 
-        key_name
-    )
-    return token
-
-# --- CONFIGURACIÓN ---
-NAMESPACE = ""      # Solo el nombre, sin .servicebus...
-ENTITY_PATH = "TU-COLA-O-TOPIC" # Nombre de la cola o el topic
-KEY_NAME = "RootManageSharedAccessKey" 
-KEY_VALUE = "TU-PRIMARY-KEY-AQUI"
-
-# Construcción de la URL de Azure REST API
-resource_uri = f"https://{NAMESPACE}.servicebus.windows.net/{ENTITY_PATH}"
-send_url = f"{resource_uri}/messages"
-
-# 1. Generar el Token
-sas_token = get_auth_token(resource_uri, KEY_NAME, KEY_VALUE)
+        },
+        {
+            "itemNo": "1000",
+            "unitMeasure":"PCS",
+            "quantity": 1,
+            "locationCode": "EAST",
+            "destinationLocation":"",
+            "reasonCode": "PRUEBA",
+            "netWeight": 56.9,
+            "totalCost": 123.56,
+            "originCompany": "",
+            "destinationCompany": ""
+        }
+    ]
+}
 ```
+#### Campos de la integración
 
-### Generar correlationId para ID de mensaje
+##### Encabezado 
 
-Se necesita un GUID para el correlationId del mensaje. Aquí tienes un ejemplo de cómo generar un ID:
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- | 
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| sessionID | Integer | Identificador del lote de produccion. |
+| locationCode | Text[20] | Código del almacén de origen. |
+| destinationLocation | Text[20] | Código del almacén de destino. |
+| shippingAgentCode | Text[10]  | Código del transportista. |
+| shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
 
-#### Formas de generar un GUID:
+##### Lineas
 
-```
-Python
-import uuid
-correlationId = str(uuid.uuid4())
-print(correlationId)
-2728f6b3-4aaa-4fe7-80d7-4c19fa21c625
- 
-NodeJS:
-const { v4: uuidv4 } = require('uuid');
-correlationId=uuidv4()
-console.log(correlationId)
-aa463307-09a0-4cb2-8cac-db745719c612
- 
-PowerShell
-$correlationId=[guid]::NewGuid().ToString()
-Write-Output $correlationId
-da41df95-679b-40fd-ba67-d5b8fc311aa6
-```
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| destinationLocation | Text[20] | Código del almacén de destino para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| newWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. |
+| totalCost | Decimal | Costo total de los artículos en la línea. |
+| originCompany | Text[30] | Código de la compañía de origen para la línea. |
+| destinationCompany | Text[30] | Código de la compañía de destino para la línea. |
 
-<Aside type="note">
-  El correlationId es un identificador único que se asigna a cada mensaje enviado al Azure Service Bus. Este ID es crucial para rastrear y correlacionar mensajes a lo largo de su ciclo de vida, especialmente en escenarios de integración y depuración. Asegúrate de generar un nuevo correlationId para cada mensaje que envíes, ya que esto facilitará el seguimiento y la resolución de problemas en tu sistema.
-</Aside>
+#### Tipos de movimiento
 
-
-### Obtener mensajes de Salida
-
-Una vez enviado el mensaje procedemos con monitorear la cola de salida para obtener la respuesta. Usamos POST porque vamos a sacar el menssaje de la cola.
-
-El trigger de la logica que sondea la cola recepcionalmacen lo ajuste a 30 segundos
-
-El timeout del request lo ajuste a 30 segundos, dando el tiempo necesario para obtener el mensaje.
+ 1) **Transferencia**
+ 2) **Recepción de compra**
+ 3) **Transferencia entrante**
+ 4) **Despacho de venta**
+ 5) **Transferencia intercompañia**
+ 6) **Entrada - Prestamo recibidos**
+ 7) **Salida - Prestamo recibidos**
+ 8)  **Devolución de ventas**
+ 9) **Recibo de producción**
+ 10) **Registro de merma**
 
 
-<LinkCard
-  title="Ejemplo envio y recepción de mensajes con Azure Service Bus en Python"
-  href={examplePython}
-  target={'_blank'}
-  download={true}
-/>
-
-## Integracion de Tickets
-
-Para la integracion de tickets, se dividiran los procesos por tipo de documento, para cada uno se tendra un endpoint especifico que sera consumido por el sistema externo.
+Para la integración de tickets, se dividirán los procesos por tipo de movimiento; para cada uno se tendrá un endpoint específico que será consumido por el sistema externo.
 
 Los tipos de movimiento son los siguientes:
 
-   [Transferencia de inventario/ en transito](#transferencias-simples--en-transito)
+-  [Transferencia de inventario/ en transito](#transferencias-simples--en-transito)
  - [Recepción de compra](#recepcion-de-compra)
  - [Transferencia entrante](#transferencia-entrante)
  - [Despacho de venta](#despacho-de-venta)
@@ -701,7 +670,36 @@ Los tipos de movimiento son los siguientes:
  - [Registro de merma](#registro-de-merma)
 
 
-### Tranferencias Simples / En transito
+### Transferencias Simples / En tránsito
+
+Las transferencias simples o en tránsito son aquellas que se realizan entre almacenes de la misma compañía, sin involucrar a terceros. Este tipo de movimiento permite trasladar inventario de un lugar a otro dentro de la misma organización.
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. Debe ser 1 para transferencias simples.
+| code | Text[255] | Código único del ticket. |
+| locationCode | Text[20] | Código del almacén de origen. |
+| destinationLocation | Text[20] | Código del almacén de destino. (opcional) |
+| shippingAgentCode | Text[10]  | Código del transportista |
+| shippingVehicleCode | Text[15] | Código del vehículo de transporte |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| newWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+###### 
 
 #### Creacion de ticket
 
@@ -728,14 +726,16 @@ body
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
@@ -743,6 +743,30 @@ body
 
 ### Recepcion de compra
 
+las recepciones de compra son los movimientos de inventario que se generan al recibir productos adquiridos a través de órdenes de compra. Este proceso implica registrar la entrada de mercancía en el sistema, asegurando que el inventario se actualice correctamente y que los productos estén disponibles para su uso o venta.
+
+##### campos requeridos
+
+###### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| DocumentNo | Text[20] | Número del documento de compra asociado. |
+
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 #### Creacion de ticket
 
 ```json
@@ -759,7 +783,6 @@ body
     "type": 2,
     "code": "223232E3",
     "DocumentNo": "C-PDA0000258",
-    "locationCode":"ALMACEN 1",
     "lines":[
         {
             "itemNo": "1000",
@@ -767,7 +790,8 @@ body
             "reasonCode": "PRUEBA",
             "locationCode":"ALMACEN 1",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
@@ -775,13 +799,40 @@ body
             "quantity": 1,
             "locationCode":"ALMACEN 1",
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
 ```
 
 ### Transferencia Entrante
+
+las transferencias entrantes son movimientos de inventario que se producen cuando los productos se reciben desde otra ubicación o almacén, ya sea dentro de la misma compañía o desde un proveedor externo. Este tipo de movimiento asegura que el inventario se actualice correctamente al recibir mercancía en el sistema.
+
+#### Campos requeridos
+
+######  Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| DocumentNo | Text[20] | Número del documento de transferencia asociado. |
+| locationCode | Text[20] | Código del almacén de origen. |
+| shippingAgentCode | Text[10]  | Código del transportista. |
+| shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
+
+######  Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -808,20 +859,57 @@ body
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
 ```
 
 ### Despacho de Venta
+
+El despacho de venta es el proceso mediante el cual los productos se envían desde el almacén o centro de distribución hacia el cliente final. Este movimiento implica la preparación, embalaje y transporte de los artículos vendidos, asegurando que lleguen en buen estado y dentro del plazo acordado. Los despachos de venta debe reflejar los lotes de los productos que se están enviando.
+
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| DocumentNo | Text[20] | Número del documento de venta asociado. |
+| ShippingAgentCode | Text[10]  | Código del transportista. |
+| ShippingVehicleCode | Text[15] | Código del vehículo de transporte. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+##### Lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| lot | Text[20] | Número de lote del artículo. (opciona) |
+| quantity | Decimal | Cantidad de artículos en el lote. (opcional) |
+
 
 #### Creacion de ticket
 
@@ -849,6 +937,7 @@ body
             "reasonCode": "PRUEBA",
             "quantity": 3,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "lots":[
                 {
                     "lot": "gdgdgdg",
@@ -867,6 +956,7 @@ body
             "reasonCode": "PRUEBA",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "lots":[
                 {
                     "lot": "gdgdgdg",
@@ -879,6 +969,32 @@ body
 ```
 
 ### Transferencia Intercompañia
+
+Las transferencias intercompañía son movimientos de inventario que se realizan entre diferentes entidades legales dentro de la misma organización. Este tipo de movimiento permite trasladar productos de un almacén o ubicación de una compañía a otra.
+
+#### campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| destinationLocation | Text[20] | Código del almacén de destino para la línea. |
+| originCompany | Text[30] | Código de la compañía de origen para la línea. |
+| destinationCompany | Text[30] | Código de la compañía de destino para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+| totalCost | Decimal | Costo total de los artículos en la línea. |
 
 #### Creacion de ticket
 
@@ -905,6 +1021,7 @@ body
             "DestinationCompany": "IDTE3",
             "quantity": 3,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
             
         },
@@ -917,13 +1034,37 @@ body
             "DestinationCompany": "IDTE3",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
         }
     ]
 }
 ```
 
-### Entrada - Prestamo recibidos
+### Entrada - Prestamos recibidos
+
+Las entrada - prestamo recibidos son movimientos de inventario que se generan cuando se reciben productos prestados de otra compañía o entidad. Este tipo de movimiento permite registrar la entrada temporal de mercancía en el sistema. Los prestamos recibido se registrara como un ajuste de inventario.
+
+##### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| locationCode | Text[10] | Código de ubicación del artículo. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+| totalCost | Decimal | Costo total de los artículos en la línea. |
 
 #### Creacion de ticket
 
@@ -947,6 +1088,7 @@ body
             "locationCode":"ALMACEN 1",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
             
         },
@@ -956,6 +1098,7 @@ body
             "locationCode":"ALMACEN PTO",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
         }
     ]
@@ -963,6 +1106,29 @@ body
 ```
 
 ### Salida - Prestamo recibidos
+
+Las salida - prestamo recibidos son movimientos de inventario que se generan cuando se devuelven productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacen del prestamo recibido. Los prestamos recibido se registrara como un ajuste de inventario.
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| : --- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| locationCode | Text[10] | Código de ubicación del artículo. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+| totalCost | Decimal | Costo total de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -986,6 +1152,7 @@ body
             "locationCode":"ALMACEN 1",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
             
         },
@@ -995,6 +1162,7 @@ body
             "locationCode":"ALMACEN PTO",
             "quantity": 1,
             "netWeight": 56.9,
+            "tareWeight": 0,
             "totalCost": 0,
         }
     ]
@@ -1002,6 +1170,32 @@ body
 ```
 
 ### Entrada - Prestamo otorgados
+
+La entrada - prestamo otorgados son movimientos de inventario que se generan cuando se reciben productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la entrada de mercancía en el sistema. Los prestamos otorgados se registrara como un ajuste de inventario.
+
+##### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| locationCode | Text[20] | Código del almacén de origen. |
+| destinationLocation | Text[20] | Código del almacén de destino. |
+| shippingAgentCode | Text[10]  | Código del transportista. |
+| shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -1028,20 +1222,51 @@ body
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
+
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
 ```
 
 ### Salida - Prestamo otorgados
+
+La Salida - prestamo otorgados son movimientos de inventario que se generan cuando se entragan productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacen al almacen de prestamo otorgado. Los prestamos otorgados se registrara como un ajuste de inventario.
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| locationCode | Text[20] | Código del almacén de origen. |
+| destinationLocation | Text[20] | Código del almacén de destino. |
+| shippingAgentCode | Text[10]  | Código del transportista. |
+| shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -1068,20 +1293,46 @@ body
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
 ```
 
 ### Devolucion de ventas
+
+La devolucion de ventas es el proceso mediante el cual los productos vendidos son devueltos por el cliente al almacén o centro de distribución. Este movimiento implica registrar la entrada de mercancía devuelta en el sistema.
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| DocumentNo | Text[20] | Número del documento de venta asociado. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -1106,7 +1357,8 @@ body
             "reasonCode": "PRUEBA",
             "locationCode":"ALMACEN 1",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
@@ -1114,13 +1366,38 @@ body
             "locationCode":"ALMACEN 1",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
 ```
 
 ### Recibo de Produccion 
+
+El recibo de producción es el proceso mediante el cual los productos fabricados o ensamblados se registran como entrada  de inventario de productos terminados en el sistema. Este movimiento asegura que el inventario refleje correctamente la cantidad de productos terminados en las ordenes de produccion.
+
+#### Campos requeridos
+
+#### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+| documentNo | Text[20] | Número del documento de producción asociado. |
+| locationCode | Text[20] | Código del almacén de origen. |
+
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -1137,20 +1414,22 @@ body
 {
     "type": 9,
     "code": "223232E3",
-    "DocumentNo": "1006",
+    "documentNo": "1006",
     "locationCode":"ALMACEN 1",
     "lines":[
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
@@ -1158,6 +1437,27 @@ body
 
 ### Registro de merma
 
+EL registro de merma es el proceso mediante el cual se documenta la pérdida de inventario debido a factores como deterioro, caducidad, daños o errores en el manejo de los productos. Este movimiento permite ajustar el inventario para reflejar con precisión la cantidad disponible de productos.
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| type | Integer | Tipo de movimiento. |
+| code | Text[255] | Código único del ticket. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNo | Text[20] | Número de artículo. |
+| unitMeasure | Text[10] | Unidad de medida del artículo. |
+| locationCode | Text[20] | Código del almacén de origen para la línea. |
+| quantity | Decimal | Cantidad de artículos en la línea. |
+| netWeight | Decimal | Peso neto de los artículos en la línea. |
+| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
 
 #### Creacion de ticket
 
@@ -1180,14 +1480,16 @@ body
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         },
         {
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
             "quantity": 1,
-            "netWeight": 56.9
+            "netWeight": 56.9,
+            "tareWeight": 0
         }
     ]
 }
