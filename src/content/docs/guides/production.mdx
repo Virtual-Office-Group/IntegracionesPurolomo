@@ -1,0 +1,68 @@
+---
+title: 'Integraciones Ordenes de Producción'
+description: Guía para integraciones con ordenes de produccion externas.
+---
+
+## Integración de ordenes de producción
+
+### Estructura basica
+
+```json
+{
+    "prodOrder": "PROD001",
+    "prodOrderExt": "PRODEXT001",
+    "locationCode": "MP",
+    "lote": "13244234",
+    "productionOrderlines":[
+        {
+            "itemNoExt": "PTCM10",
+            "unitMeasureCode": "KG",
+            "quantity": 10,
+            "finishedQuantity": 10,
+            "productionOrderComponents":[
+                {
+                    "itemNoExt":"MP003",
+                    "unitMeasureCode": "KG",
+                    "estimatedquantityPer": 1,
+                    "realquantityPer": 3
+                }
+            ]
+        }
+    ]
+}
+```
+
+#### Campos de la integración
+
+##### Encabezado  
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| prodOrder | Text[20] | Nro. Orden de producción. |
+| prodOrderExt | Text[255] | Nro. Orden de producción externa. |
+| locationCode | Text[255] | Código de ubicación. |
+| lote | Text[20] | Nro. de lote. |
+
+##### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNoExt | Text[255] | Código del artículo externo | 
+| unitMeasureCode | Text[255] | Código de la unidad de medida |
+| quantity | Decimal | Cantidad del articulo | 
+| finishedQuantity | Decimal | Cantidad finalizada |
+
+#### Componentes 
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| itemNoExt | Text[255] | Código del artículo externo | 
+| unitMeasureCode | Text[255] | Código de la unidad de medida |
+| estimatedquantityPer | Decimal | Cantidad estimada por unidad |
+| realquantityPer | Decimal | Cantidad real por unidad |
+
+
+
+## Consumo de Maestros de Datos
+
+### Maestro de Ordenes de Producción

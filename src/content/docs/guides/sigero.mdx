@@ -563,6 +563,7 @@ El parámetro "changeType" indica el tipo de cambio:
 {
     "type": 1,
     "code": "2232326E3",
+    "DocumentNo": "C-PDA0000258",
     "sessionID": 0,
     "locationCode":"ALMACEN 1",
     "destinationLocation": "",
@@ -1653,6 +1654,28 @@ Authorization: Bearer {access_token}
 | invoicedQuantity | Decimal | Cantidad que ya ha sido facturada. |
 | invoiceQuantity | Decimal | Cantidad pendiente o lista para facturar (295). |
 | receiveQuantity | Decimal | Cantidad pendiente por recibir físicamente. |
+
+## Consumo Pedidos de Venta
+
+### Obtener lista de Pedidos de Venta
+
+**Suscripción de webhook**
+
+El consumo de pedidos de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
+
+```json
+POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "api/v2.0/companies({{companyId}})/purchaseOrders",
+  "clientState": ""
+}
+```
+
+
 
 ## Consumo de Maestros de Datos
 

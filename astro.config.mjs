@@ -32,8 +32,8 @@ export default defineConfig({
 				{
 					label: 'Integraciones',
 					items: [
-						
 						{ label: 'Sigero', slug: 'guides/sigero' },
+						{ label: 'Ordenes de Producción', slug: 'guides/production' },
 						{ label: 'Nomina - Business Central',slug:'guides/paysheet'}
 					],
 				},
