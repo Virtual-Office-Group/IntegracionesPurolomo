@@ -710,12 +710,14 @@ Las transferencias simples o en tránsito son aquellas que se realizan entre alm
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -760,6 +762,7 @@ las recepciones de compra son los movimientos de inventario que se generan al re
 | type | Integer | Tipo de movimiento. |
 | code | Text[255] | Código único del ticket. |
 | DocumentNo | Text[20] | Número del documento de compra asociado. |
+| LocationCode | Text[20] | Código del almacén de origen. |
 | OriginalDatetime | DateTime | Fecha y hora original del ticket. |
 
 ##### Lineas
@@ -777,18 +780,22 @@ las recepciones de compra son los movimientos de inventario que se generan al re
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
-  companyID: {companyID} // Id de la compañía en Business Central
+  companyId: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
+
 }
 body
 {
     "type": 2,
     "code": "223232E3",
     "DocumentNo": "C-PDA0000258",
+    "locationCode":"ALMACEN 1",
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
@@ -846,12 +853,14 @@ las transferencias entrantes son movimientos de inventario que se producen cuand
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -925,12 +934,15 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
+  
 }
 body
 {
@@ -1012,12 +1024,14 @@ Las transferencias intercompañía son movimientos de inventario que se realizan
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1084,12 +1098,14 @@ Las entrada - prestamo recibidos son movimientos de inventario que se generan cu
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1150,12 +1166,14 @@ Las salida - prestamo recibidos son movimientos de inventario que se generan cua
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines($expand=lots)
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensajes
 }
 body
 {
@@ -1219,12 +1237,14 @@ La entrada - prestamo otorgados son movimientos de inventario que se generan cua
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1292,12 +1312,14 @@ La Salida - prestamo otorgados son movimientos de inventario que se generan cuan
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1360,12 +1382,14 @@ La devolucion de ventas es el proceso mediante el cual los productos vendidos so
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1427,12 +1451,14 @@ El recibo de producción es el proceso mediante el cual los productos fabricados
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1489,12 +1515,14 @@ EL registro de merma es el proceso mediante el cual se documenta la pérdida de 
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/tickets?$expand=lines
+https://devnamespacevog.servicebus.windows.net
 Header{
   Content-Type: application/json
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
 }
 body
 {
@@ -1661,21 +1689,135 @@ Authorization: Bearer {access_token}
 
 **Suscripción de webhook**
 
-El consumo de pedidos de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
+El consumo de pedidos de venta puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
 
 ```json
-POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/subscriptions
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 
 {
-  "notificationUrl": "%UrlNotificationId%",
-  "resource": "api/v2.0/companies({{companyId}})/purchaseOrders",
+  "notificationUrl": "UrlNotificationId",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/salesOrders",
   "clientState": ""
 }
 ```
 
+**Consumir Endpoints**
 
+Para consultar manualmente las órdenes de venta, puedes consumir el endpoint estándar de Business Central.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesOrder?$expand=salesOrderLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesOrders",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzI4NTEyNDcwNjYxOTg5MjE5ODExOzAwOyc=\"",
+            "id": "e44d1923-4f60-f111-ab09-7ced8da80af9",
+            "number": "101015",
+            "orderDate": "2025-11-15",
+            "postingDate": "2025-11-15",
+            "customerNumber": "10000",
+            "customerName": "Adatum Corporation",
+            "currencyCode": "",
+            "priceIncludeTax": false,
+            "status": "Released",
+            "lastModifiedDateTime": "2026-07-23T13:44:41.733Z",
+            "salesOrderLines": [
+                {
+                    "@odata.etag": "W/\"JzE5Ozk1ODEzNDIxMDAxNjM0NzAwNTYxOzAwOyc=\"",
+                    "id": "f5893329-4f60-f111-ab09-7ced8da80af9",
+                    "documentId": "101015",
+                    "sequence": 10000,
+                    "lineType": "Item",
+                    "lineObjectNumber": "PTCM01001",
+                    "description": "Pollo Beneficiado Grado A Embolsado F",
+                    "description2": "",
+                    "unitOfMeasureCode": "KG",
+                    "locationCode": "ALMACEN 2",
+                    "quantity": 10,
+                    "shippedQuantity": 0,
+                    "invoicedQuantity": 0
+                }
+            ]
+        },
+        {
+            "@odata.etag": "W/\"JzE4Ozg1NDI1NDg5MTM0ODk0NTg3NTE7MDA7Jw==\"",
+            "id": "8559d70f-a186-f111-8072-002248360983",
+            "number": "101016",
+            "orderDate": "2025-11-15",
+            "postingDate": "2025-11-15",
+            "customerNumber": "10000",
+            "customerName": "Adatum Corporation",
+            "currencyCode": "",
+            "priceIncludeTax": false,
+            "status": "Released",
+            "lastModifiedDateTime": "2026-07-23T14:16:55.747Z",
+            "salesOrderLines": [
+                {
+                    "@odata.etag": "W/\"JzE5OzUwNjU3NDA3NDEwMTM0NzMyNTExOzAwOyc=\"",
+                    "id": "14b21b18-a186-f111-8072-002248360983",
+                    "documentId": "101016",
+                    "sequence": 10000,
+                    "lineType": "Item",
+                    "lineObjectNumber": "1000",
+                    "description": "MORTADELA TIPO 1",
+                    "description2": "",
+                    "unitOfMeasureCode": "PCS",
+                    "locationCode": "ALMACEN 2",
+                    "quantity": 100,
+                    "shippedQuantity": 0,
+                    "invoicedQuantity": 0
+                }
+            ]
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| **@odata.context** | String (URL) | La URL que define el esquema y el origen de los datos. |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| number | Text[20] | Es el código de pedido de venta. |
+| orderDate | Date | Fecha de emisión del documento. |
+| postingDate | Date | Fecha contable del registro. |
+| customerNumber | Text[20] | Código del cliente. |
+| customerName | Text[100] | Nombre o razón social del cliente. |
+| currencyCode | Text[10] | Código ISO de la moneda. |
+| priceIncludeTax | Boolean | precios incluyen impuestos | 
+| status | Text[30] | Estado del documento | 
+| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Lineas)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| documentId | Guid | ID del documento principal (cabecera) al que pertenece. |
+| sequence | Integer | Orden de aparición de la línea en el documento. |
+| lineType | Text[20] | Tipo de línea (ej. Item/Producto). |
+| lineObjectNumber | Text[20] | Código de referencia del producto. |
+| description | Text[100] | Descripción del producto. |
+| description2 | Text[50] | Descripción del producto 2. |
+| unitOfMeasureCode | Text[10] | Código de la unidad de medida. |
+| locationCode | Text[20] | Código del almacén. |
+| quantity | Decimal | Cantidad solicitada. |
+| shippedQuantity | Decimal | Cantidad ya enviada. |
+| invoicedQuantity | Decimal | Cantidad facturada. |
 
 ## Consumo de Maestros de Datos
 
@@ -1798,7 +1940,6 @@ https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/ap
 Content-Type: application/json 
 Authorization: Bearer {access_token}
 ```
-
 **Datos obtenidos**
 
 ```json
@@ -1886,24 +2027,16 @@ Authorization: Bearer {access_token}
 body
 {
   "notificationUrl": "UrlNotificationId",
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/locations",
+  "resource": "/api/v2.0/companies({{companyId}})/customers",
   "clientState": ""
 }
 ```
-
-<Aside type="caution">
-La suscripción de almacens se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
-
-```text 
-POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-```
-</Aside>
 
 **Endpoint para Listado de almacenes (Sincronización Manual)**
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/Locations
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/Locations
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1912,25 +2045,22 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/locations/$entity",
-    "@odata.etag": "W/\"JzE5OzQxMTUyNTY0NzUzNjg4MDEyODIxOzAwOyc=\"",
-    "id": "79231df8-d921-f011-9af7-000d3ac04986",
-    "code": "PRINCIPAL",
-    "displayName": "ALMACEN PRINCIPAL",
-    "contact": "",
-    "addressLine1": "",
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/v2.0/$metadata#companies(eceb62c5-e5e3-ef11-9345-000d3ac0ed1a)/locations/$entity",
+    "@odata.etag": "W/\"JzE4OzQ4MjAwODI0MzQ3MTA3NDI1ODE7MDA7Jw==\"",
+    "id": "a0fd5182-c860-ef11-a672-000d3ac04166",
+    "code": "EAST",
+    "displayName": "East Warehouse",
+    "contact": "Jack Potter",
+    "addressLine1": "Great Eastern Street, 80",
     "addressLine2": "",
-    "city": "",
+    "city": "London",
     "state": "",
-    "country": "",
-    "postalCode": "",
-    "phoneNumber": "",
+    "country": "GB",
+    "postalCode": "EC2A 3JL",
+    "phoneNumber": "+44-(0)30 9874 1299",
     "email": "",
     "website": "",
-    "requirePicking": false,
-    "requireReceive": false,
-    "requireShipment": false,
-    "lastModifiedDateTime": "2025-04-25T13:34:24.23Z"
+    "lastModifiedDateTime": "2024-08-25T22:49:58.143Z"
 }
 ```
 
@@ -1953,10 +2083,6 @@ Authorization: Bearer {access_token}
 | phoneNumber | Text[30] | Número telefónico de contacto. |
 | email | Text[80] | Dirección de correo electrónico. |
 | website | Text[255] | Dirección URL del almacén. |
-| requirePicking | Boolean  | Si es requerido el picking en las transferencias |
-| requireReceive | Boolean  | Si es requerido la recepción en las transferencias |
-| requireShipment | Boolean | Si es requerido el envio del almacen en las transferencias |
-
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
 ### Maestro de Proveedores
@@ -1973,7 +2099,7 @@ Authorization: Bearer {access_token}
 body
 {
   "notificationUrl": "UrlNotificationId",
-  "resource": "/api/v2.0/companies(%companyId%)/vendors",
+  "resource": "/api/v2.0/companies({{companyId}})/vendors",
   "clientState": ""
 }
 ```
@@ -2134,7 +2260,7 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents?$expand=shippingAgentsPlates
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents?$expand=shippingAgentsVehicles
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2150,26 +2276,17 @@ Authorization: Bearer {access_token}
             "id": "b057d38a-c006-f111-8405-7ced8da9239b",
             "code": "CM3SRL",
             "name": "Camiones",
-            "lastName": "SRL",
             "vendor": "C-PROV0000008",
+            "vendorName": "",
             "lastModifiedDateTime": "2026-06-11T19:18:00.637Z",
-            "shippingAgentsPlates": [
+            "shippingAgentsVehicles": [
                 {
                     "@odata.etag": "W/\"JzE5Ozk2NzIyNDU0NDUwMzUyMDQxODkxOzAwOyc=\"",
-                    "shippingAgentCode": "CM3SRL",
-                    "code": "AD543ED",
                     "id": "5eec9a56-ca65-f111-ab09-7ced8da8a516",
+                    "code": "AD543ED",
                     "description": "CAMION",
                     "systemModifiedAt": "2026-06-11T19:18:35.167Z"
                 },
-                {
-                    "@odata.etag": "W/\"JzE5Ozc1MTg1MTAwOTU1NTc2MTQ4MjExOzAwOyc=\"",
-                    "shippingAgentCode": "CM3SRL",
-                    "code": "CH540BA",
-                    "id": "4d97955c-ca65-f111-ab09-7ced8da8a516",
-                    "description": "CAMION 2",
-                    "systemModifiedAt": "2026-06-11T19:18:50.16Z"
-                }
             ]
         }
     ]
@@ -2185,8 +2302,8 @@ Authorization: Bearer {access_token}
 | id | Guid | ID del Transportista. |
 | code | Code[10] | Es el código del transportista. |
 | name | Text[50] | Nombre del transportista. |
-| lastName | Text[50] | Apellido del transportista |
-| vendor | Text[100] | Nombre de compañía |
+| vendor | Text[100] | codigo de proveedor |
+| vendorName | Text[100] | Nombre del proveedor |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
 **Campos de la respuesta (placas)**
@@ -2194,8 +2311,8 @@ Authorization: Bearer {access_token}
 | Nombre | Tipo de dato | Descripción |
 |---|---|---|
 | @odata.context |  | La URL que define el esquema y el origen de los datos |
-| shippingAgentCode | Code[10] | La URL que define el esquema y el origen de los datos |
-| plate | Text[15] | placa del vehiculo |
+| id | Guid | ID del vehiculo. |
+| code | Text[15] | codigo del vehiculo |
 | description | Text[100] | descripcion del vehiculo |
 | lastModifiedDateTime| Datetime | Fecha de la ultima modificacion |
 
