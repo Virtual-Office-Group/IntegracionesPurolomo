@@ -61,8 +61,154 @@ description: Guía para integraciones con ordenes de produccion externas.
 | estimatedquantityPer | Decimal | Cantidad estimada por unidad |
 | realquantityPer | Decimal | Cantidad real por unidad |
 
+### Creacion tickets de produccion 
+
+para crear tickets de produccion se debe utilizar la siguiente estructura:
 
 
-## Consumo de Maestros de Datos
+```json
+POST
+https://devnamespacevog.servicebus.windows.net
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID} // Id de la compañía en Business Central
+  environment: {environment} // Nombre del ambiente en Business Central
+  operationType: "POST" // Tipo de operacion
+  requestId: {requestId} // Id de mensaje
+}
+body
+{
+    "prodOrder": "OPL001",
+    "prodOrderExt": "PROD0004",
+    "lote": "13244234",
+    "productionOrderlines":[
+        {
+            "itemNoExt": "PTCM10",
+            "unitMeasureCode": "UND",
+            "quantity": 10,
+            "finishedQuantity": 10,
+            "productionOrderComponents":[
+                {
+                    "itemNoExt":"mp003",
+                    "unitMeasureCode": "KG",
+                    "estimatedquantityPer": 1,
+                    "realquantityPer": 3
+ 
+                }
+            ]
+        }
+    ]
+} 
+```
 
-### Maestro de Ordenes de Producción
+** Datos Obtenidos**
+
+```json
+{
+    "@odata.etag": "W/\"JzE5OzQ0OTgzNDcwMzEwMjk4OTg5MDkxOzAwOyc=\"",
+    "id": "7c4c62ef-a587-f111-8072-002248360983",
+    "prodOrder": "F-OPL0236",
+    "prodOrderExt": "PRODEXT001",
+    "locationCode": "",
+    "lote": "13244234",
+    "date": "2026-07-24T21:23:39.087Z",
+    "modifiedAt": "2026-07-24T21:23:39.093Z",
+    "productionOrderlines": [
+        {
+            "@odata.etag": "W/\"JzIwOzExNzA0ODA3NTk1NDUzNjQyMTQ3MTswMDsn\"",
+            "id": "7d4c62ef-a587-f111-8072-002248360983",
+            "productionOrderNo": "F-OPL0236",
+            "lineNo": 10000,
+            "itemNoExt": "PTCM10",
+            "itemNo": "PTCM01001",
+            "description": "Pollo Beneficiado Grado A Embolsado F",
+            "unitMeasureCode": "KG",
+            "quantity": 10,
+            "finishedQuantity": 10,
+            "systemModifiedAt": "2026-07-24T21:23:39.17Z"
+        }
+    ]
+},
+```
+
+
+
+# Consumo de Maestros de Datos
+
+## Consumo Ordenes de produccion
+
+### Obtener lista de Ordenes de produccion
+
+**Consumir Endpoints**
+
+Para consultar manualmente las órdenes de producción, puedes consumir el endpoint estándar de Business Central.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+**Datos obtenidos**
+
+```json
+{
+    "@odata.etag": "W/\"JzE5OzM3MDAwNDA0MTM0NjI1MDI1NjAxOzAwOyc=\"",
+    "id": "0f5b4ba5-9074-f111-8070-002248360983",
+    "status": "Released",
+    "code": "F-OPL0237",
+    "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
+    "description2": "",
+    "sourceType": "Item",
+    "sourceNo": "PTCM10021",
+    "dueDate": "2026-07-01",
+    "systemModifiedAt": "2026-06-30T14:33:25.2Z",
+    "prodOrderLines": [
+        {
+            "@odata.etag": "W/\"JzIwOzEzMDkzODA3OTgyNTU5MTYzMzE4MTswMDsn\"",
+            "id": "105b4ba5-9074-f111-8070-002248360983",
+            "lineNo": 10000,
+            "itermNo": "PTCM10021",
+            "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
+            "description2": "",
+            "unitMeasureCode": "UND",
+            "quantity": 100,
+            "remainingQuantity": 100,
+            "finishedQuantity": 0,
+            "systemModifiedAt": "2026-06-30T14:33:24.58Z"
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| status | Text[20] | Estado del documento. |
+| code | Text[20] | Código de la orden de producción. |
+| description | Text[100] | Descripción de la orden de producción. |
+| description2 | Text[50] | Descripción secundaria de la orden de producción. |
+| sourceType | Text[20] | Tipo de fuente de la orden de producción. |
+| sourceNo | Text[20] | Número de fuente de la orden de producción. |
+| dueDate | Date | Fecha límite de entrega de
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Lineas)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| lineNo | Integer | Número de línea de la orden de producción. |
+| itermNo | Text[20] | Número de artículo de la orden de producción. |
+| description | Text[100] | Descripción del artículo de la orden de producción. |
+| description2 | Text[50] | Descripción secundaria del artículo de la orden de producción. |
+| unitMeasureCode | Text[10] | Código de la unidad de medida del artículo. |
+| quantity | Decimal | Cantidad solicitada del artículo. |
+| remainingQuantity | Decimal | Cantidad restante del artículo. |
+| finishedQuantity | Decimal | Cantidad finalizada del artículo. |
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |

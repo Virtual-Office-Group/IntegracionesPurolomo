@@ -1550,6 +1550,76 @@ body
 }
 ```
 
+## Consumo Transferencias Entrantes
+
+### Obtener lista de Transferencias Entrantes
+
+**Consumir Endpoints**
+
+Para consultar manualmente las órdenes de compra, puedes consumir el endpoint estándar de Business Central.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/outboundTransfers?$expand=outboundTransferLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.etag": "W/\"JzIwOzE3NTc3MDU2MzU1NDI0MDgwMDU3MTswMDsn\"",
+    "id": "4635d57c-171e-f111-8405-7ced8da8a20f",
+    "documentNo": "1006",
+    "locationCode": "ALMACEN 1",
+    "lastModifiedDateTime": "2026-07-23T13:04:36.757Z",
+    "outboundTransferLines": [
+        {
+            "@odata.etag": "W/\"JzE5OzYxMTAyMTk0Mzg4NjUwMzk4MTMxOzAwOyc=\"",
+            "id": "8750226e-171e-f111-8405-7ced8da8a20f",
+            "documentNo": 10000,
+            "locationCode": "MPPA01090",
+            "variantCode": "",
+            "description": "Alimento para Pollos",
+            "quantity": 100,
+            "netWeight": 0,
+            "quantityReceived": 50,
+            "quantityOutstanding": 50,
+            "quantityShipped": 50,
+            "lastModifiedDateTime": "2026-07-23T13:04:36.587Z"
+        }
+    ]
+},
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag |  | Identificador de versión para control de concurrencia. |
+| id | GUID | Identificador único universal del registro. |
+| documentNo | Text[20] | Número del documento de transferencia entrante. |
+| locationCode | Text[20] | Código del almacén. |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
+
+**Campos de la respuesta (Lineas)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Identificador de versión para control de concurrencia. |
+| id | GUID | Identificador único de la línea de documento. |
+| documentNo | GUID | ID del documento principal (cabecera) al que pertenece. |
+| locationCode | String | Código del almacén. |
+| variantCode | String | Código de variante del producto. |
+| description | String | Descripción del producto. |
+| quantity | Decimal | Cantidad total solicitada. |
+| netWeight | Decimal | Peso neto del producto. |
+| quantityReceived | Decimal | Cantidad recibida. |
+| quantityOutstanding | Decimal | Cantidad pendiente de recibir. |
+| quantityShipped | Decimal | Cantidad enviada |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
+
 ## Consumo Pedidos de Compra
 
 ### Obtener lista de Pedidos de Compra
@@ -1585,63 +1655,32 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/purchaseOrders",
-    "value": [
+    "@odata.etag": "W/\"JzE5OzIzNzg3NTQxMzQ1MDAzNzUwODExOzAwOyc=\"",
+    "id": "78741a08-9f86-f111-8072-002248360983",
+    "documentNo": "106012",
+    "locationCode": "ALMACEN 2",
+    "lastModifiedDateTime": "2026-07-23T14:01:42.917Z",
+    "purchaseOrderLines": [
         {
-            "@odata.etag": "W/\"JzE5OzI2OTEwNjgyNjg4NDg0NTA4MzQxOzAwOyc=\"",
-            "id": "3aa5abdf-de21-f011-9af7-000d3ac04986",
-            "number": "C-PDA0000258",
-            "orderDate": "2025-04-25",
-            "postingDate": "2025-04-25",
-            "vendorNumber": "C-PROV0000008",
-            "vendorName": "PROVEEDOR  1",
-            "currencyCode": "USD",
-            "priceIncludeTax": false,
-            "purchaser": "",
-            "requestedReceiptDate": "0001-01-01",
-            "status": "Released",
-            "lastModifiedDateTime": "2025-04-25T14:40:56.823Z",
-            "purchaseOrderLines": [
-                {
-                    "@odata.etag": "W/\"JzIwOzEwNjkxMDQyNDQ1MjEwNDY5ODc5MTswMDsn\"",
-                    "id": "3ca5abdf-de21-f011-9af7-000d3ac04986",
-                    "documentId": "C-PDA0000258",
-                    "sequence": 10000,
-                    "lineType": "Item",
-                    "lineObjectNumber": "PROD001",
-                    "description": "HARINA DE MAIZ",
-                    "description2": "",
-                    "unitOfMeasureCode": "KG",
-                    "locationCode": "PRINCIPAL",
-                    "quantity": 10,
-                    "directUnitCost": 1,
-                    "receivedQuantity": 10,
-                    "invoicedQuantity": 10,
-                    "invoiceQuantity": 0,
-                    "receiveQuantity": 0
-                },
-                {
-                    "@odata.etag": "W/\"JzE5Ozg5MDg4MDE3NjQwMjAxNzIwOTAxOzAwOyc=\"",
-                    "id": "e4da90f8-de21-f011-9af7-000d3ac04986",
-                    "documentId": "C-PDA0000258",
-                    "sequence": 20000,
-                    "lineType": "Item",
-                    "lineObjectNumber": "PROD002",
-                    "description": "HARINA DE SOYA",
-                    "description2": "",
-                    "unitOfMeasureCode": "KG",
-                    "locationCode": "PRINCIPAL",
-                    "quantity": 10,
-                    "directUnitCost": 1.5,
-                    "receivedQuantity": 10,
-                    "invoicedQuantity": 0,
-                    "invoiceQuantity": 10,
-                    "receiveQuantity": 0
-                }
-            ]
-        },
+            "@odata.etag": "W/\"JzE5OzU5NDQxNzUyNzM1ODMwMTQ0ODcxOzAwOyc=\"",
+            "id": "1c4f18fd-9e86-f111-8072-002248360983",
+            "documentId": "106012",
+            "sequence": 10000,
+            "lineType": "Item",
+            "lineObjectNumber": "1000",
+            "description": "MORTADELA TIPO 1",
+            "description2": "",
+            "unitOfMeasureCode": "PCS",
+            "locationCode": "ALMACEN 2",
+            "quantity": 10,
+            "directUnitCost": 65.391,
+            "receivedQuantity": 0,
+            "invoicedQuantity": 0,
+            "invoiceQuantity": 0,
+            "receiveQuantity": 0
+        }
     ]
-}
+    }
 ```
 
 **Campos de la respuesta (Encabezado)**
@@ -1650,19 +1689,11 @@ Authorization: Bearer {access_token}
 | :--- | :--- | :--- |
 | @odata.etag |  | Identificador de versión para control de concurrencia. |
 | id | GUID | Identificador único universal del registro. |
-| number | Text[20] | Códigoo pedido de compra |
-| orderDate | Date | Fecha de emisión del documento. |
-| postingDate | Date | Fecha contable del registro. |
-| vendorNumber | Text[20] | Código maestro del proveedor |
-| vendorName | Text[100] | Nombre o razón social del proveedor. |
-| currencyCode | Text[10] | Código ISO de la moneda. |
-| pricesIncludeTax | Boolean | Indica si los precios incluyen impuestos. |
-| purchaser | Text[20] | Código del agente de compras. |
-| requestedReceiptDate | Date | Fecha de recepción solicitada por el cliente. |
-| status | String | Estado del flujo del documento. |
-| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+| documentNo | Text[20] | Número del documento de compra. |
+| locationCode | Text[20] | Código del almacén. |
+| lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
 
-**Campos de la respuesta (Detalle)**
+**Campos de la respuesta (Lineas)**
 
 | Nombre | Tipo | Descripción |
 | :--- | :--- | :--- |
@@ -1818,6 +1849,155 @@ Authorization: Bearer {access_token}
 | quantity | Decimal | Cantidad solicitada. |
 | shippedQuantity | Decimal | Cantidad ya enviada. |
 | invoicedQuantity | Decimal | Cantidad facturada. |
+
+## Consumo Pedidos Devoluciones de Venta
+
+### Obtener lista de Pedidos Devoluciones de Venta
+
+**Consumir Endpoints**
+
+Para consultar manualmente las órdenes de devolucion  de venta, puedes consumir el endpoint estándar de Business Central.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesReturnOrders?$expand=salesReturnOrderLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.etag": "W/\"JzIwOzE2NzU5MTI1NzE2MTQzMjk1Mzc5MTswMDsn\"",
+    "id": "2208fd50-9886-f111-8072-7ced8db0e8e8",
+    "documentNo": "1001",
+    "locationCode": "ALMACEN 2",
+    "systemModifiedAt": "2026-07-23T13:13:41.187Z",
+    "salesReturnOrderLines": [
+        {
+            "@odata.etag": "W/\"JzE5OzMwNjU3NjYzNTI0OTY0NTc3NjMxOzAwOyc=\"",
+            "id": "ff24dcf5-c860-ef11-a672-000d3ac04166",
+            "documentId": "1001",
+            "sequence": 10000,
+            "lineType": "Item",
+            "lineObjectNumber": "1936-S",
+            "description": "BERLIN Guest Chair, yellow",
+            "description2": "",
+            "unitOfMeasureCode": "PCS",
+            "locationCode": "",
+            "quantity": 10,
+            "shippedQuantity": 0,
+            "invoicedQuantity": 0
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| documentNo | Text[20] | codigo del numero de pedido de devolucion | 
+| locationCode | Text[20] | codigo del almacen | 
+| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Lineas)**
+
+| Datos | Tipo | Descripción |
+| :--- | :--- | :--- |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| documentId | Text[20] | codigo del numero de pedido de devolucion | 
+| sequence | Integer | Orden de aparición de la línea en el documento. |
+| lineType | Text[20] | Tipo de línea (ej. Item/Producto). |
+| lineObjectNumber | Text[20] | Código de referencia del producto. |
+| description | Text[100] | Descripción del producto. |
+| description2 | Text[50] | Descripción del producto 2. |
+| unitOfMeasureCode | Text[10] | Código de la unidad de medida. |
+| locationCode | Text[20] | Codigo del almacen | 
+| quantity | decimal | Cantidad solicitada. |
+| shippedQuantity | decimal | Cantidad ya enviada. |
+| invoicedQuantity | decimal | Cantidad facturada. |
+
+## Consumo Ordenes de produccion
+
+### Obtener lista de Ordenes de produccion
+
+**Consumir Endpoints**
+
+Para consultar manualmente las órdenes de producción, puedes consumir el endpoint estándar de Business Central.
+
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+**Datos obtenidos**
+
+```json
+{
+    "@odata.etag": "W/\"JzE5OzM3MDAwNDA0MTM0NjI1MDI1NjAxOzAwOyc=\"",
+    "id": "0f5b4ba5-9074-f111-8070-002248360983",
+    "status": "Released",
+    "code": "F-OPL0237",
+    "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
+    "description2": "",
+    "sourceType": "Item",
+    "sourceNo": "PTCM10021",
+    "dueDate": "2026-07-01",
+    "systemModifiedAt": "2026-06-30T14:33:25.2Z",
+    "prodOrderLines": [
+        {
+            "@odata.etag": "W/\"JzIwOzEzMDkzODA3OTgyNTU5MTYzMzE4MTswMDsn\"",
+            "id": "105b4ba5-9074-f111-8070-002248360983",
+            "lineNo": 10000,
+            "itermNo": "PTCM10021",
+            "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
+            "description2": "",
+            "unitMeasureCode": "UND",
+            "quantity": 100,
+            "remainingQuantity": 100,
+            "finishedQuantity": 0,
+            "systemModifiedAt": "2026-06-30T14:33:24.58Z"
+        }
+    ]
+}
+```
+
+**Campos de la respuesta (Encabezado)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| status | Text[20] | Estado del documento. |
+| code | Text[20] | Código de la orden de producción. |
+| description | Text[100] | Descripción de la orden de producción. |
+| description2 | Text[50] | Descripción secundaria de la orden de producción. |
+| sourceType | Text[20] | Tipo de fuente de la orden de producción. |
+| sourceNo | Text[20] | Número de fuente de la orden de producción. |
+| dueDate | Date | Fecha límite de entrega de
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Lineas)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| lineNo | Integer | Número de línea de la orden de producción. |
+| itermNo | Text[20] | Número de artículo de la orden de producción. |
+| description | Text[100] | Descripción del artículo de la orden de producción. |
+| description2 | Text[50] | Descripción secundaria del artículo de la orden de producción. |
+| unitMeasureCode | Text[10] | Código de la unidad de medida del artículo. |
+| quantity | Decimal | Cantidad solicitada del artículo. |
+| remainingQuantity | Decimal | Cantidad restante del artículo. |
+| finishedQuantity | Decimal | Cantidad finalizada del artículo. |
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
 
 ## Consumo de Maestros de Datos
 
