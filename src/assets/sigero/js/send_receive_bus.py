@@ -11,7 +11,7 @@ import requests
 script_dir = os.path.dirname(os.path.abspath(__file__))
 print(script_dir)
 #Variables para tomar tiempos
-# Definimos el offset de UTC-4 (La Paz, Bolivia)
+# Definimos el offset de UTC-4 (Caracas, Venezuela)
 tz_caracas = timezone(timedelta(hours=-4))
 # Obtenemos la hora actual en esa zona
 now_caracas = datetime.now(tz_caracas)
@@ -30,6 +30,7 @@ servicebus_client_out = ServiceBusClient.from_connection_string(conn_str=Connect
 #my_correlation_id = str(uuid.uuid4()) # ID único para rastrear el mensaje
 def get_service_bus_client(namespace_hostname):
     """
+    """_
     Retorna un cliente autenticado mediante Entra ID (RBAC).
     :param namespace_hostname: El FQDN del namespace (ej: 'tu-espacio.servicebus.windows.net')
     """
@@ -46,7 +47,7 @@ def crear_recepcion_inventario(send_correlation_id,payloadJSON,IdCompany,environ
     with client.get_queue_sender(QueueInvHeaderLine) as sender:
         # Define aquí tu estructura de datos
         '''
-        Para ver la estructura del ayload, ir a Postman.
+        Para ver la estructura del payload, ir a Postman.
                 '''
         try:
             mensaje = ServiceBusMessage(payloadJSON,
@@ -60,7 +61,7 @@ def crear_recepcion_inventario(send_correlation_id,payloadJSON,IdCompany,environ
             sender.send_messages(message=mensaje)
             #mensaje.correlation_id = my_correlation_id # Sello de rastreo
             #print("="*40,"\n")
-            print("✅Mensaje enviado correctamente\n")
+            print("✅ Mensaje enviado correctamente\n")
             print(f"*Mensaje: {mensaje}\n*Cola: {QueueInvHeaderLine}\n*CorrelationID: {send_correlation_id} \n\n")
             #print("="*40,"\n")
         except ServiceBusError as e:
@@ -88,8 +89,8 @@ def crear_transferencia(send_correlation_id,payloadJson,IdCompany,environment,Me
             #timeStartQueue=fecha_utc.astimezone(ZoneInfo("America/Caracas")).isoformat()
             #mensaje.correlation_id = my_correlation_id # Sello de rastreo
             print("="*80,"\n")
-            print(f"\n✅Mensaje enviado correctamente a la cola {QueueTransferHeaderLine}\n")
-            print(f"✅Marca de tiempo de envio del Mensaje: {AppSendTime}")
+            print(f"\n✅ Mensaje enviado correctamente a la cola {QueueTransferHeaderLine}\n")
+            print(f"✅ Marca de tiempo de envío del Mensaje: {AppSendTime}")
             print(f"\n🟢Mensaje: {mensaje}\n🟢Cola: {QueueTransferHeaderLine}\n🟢Identificador de mensaje CorrelationId: {mensaje.correlation_id} \n\n")
             print("="*80,"\n")
         except ServiceBusError as e:
@@ -121,8 +122,8 @@ def crear_ajuste_productos(send_correlation_id,payloadJson,IdCompany,environment
             AppSendTime=now_caracas.isoformat()
             #mensaje.correlation_id = my_correlation_id # Sello de rastreo
             #print("="*40,"\n")
-            print("✅Mensaje enviado correctamente\n")
-            print(f"✅Marca de tiempo de envio del Mensaje: {AppSendTime}")
+            print("✅ Mensaje enviado correctamente\n")
+            print(f"✅ Marca de tiempo de envío del Mensaje: {AppSendTime}")
             print(f"✅Mensaje: {mensaje}\n*Cola: {QueueProductAjmt}\n*CorrelationID: {send_correlation_id} \n\n")
             #print("="*40,"\n")
         except ServiceBusError as e:
@@ -134,7 +135,7 @@ def obtener_resultados(msgcorrelation_id,operacion):
     start_time = time.time()
     try:
         print("#######################################################################################################################")
-        print(f"Monitoreando Cola de Salida:")
+        print(f"Monitoreando cola de salida:")
         with servicebus_client_out:
             receiver = servicebus_client_out.get_queue_receiver(queue_name=QueueOut, receive_mode=ServiceBusReceiveMode.PEEK_LOCK, prefetch_count=10)
             print(receiver)
@@ -143,7 +144,7 @@ def obtener_resultados(msgcorrelation_id,operacion):
                 while (time.time() - start_time) < timeout and not MsgFound:
                     #obtenemos mensajes de 10 en 10 
                     received_messages = receiver.receive_messages(max_message_count=1, max_wait_time=1)
-                    print(f"Mensajes tomados de la cola {len(received_messages)}")
+                    print(f"Mensajes tomados de la cola: {len(received_messages)}")
                     for msg in received_messages:
                         #convertimos las propiedades del mensaje en diccionarios
                         props = msg.application_properties or {}
@@ -159,6 +160,7 @@ def obtener_resultados(msgcorrelation_id,operacion):
                         #bloque de decodificación por este:
                         try:
                             # 1. Intentar decodificar Base64
+                            # 1. Intentar decodificar Base64.
                             decoded_bytes = base64.b64decode(body_str)
                             try:
                                 # Intentar convertir esos bytes a texto (usando 'latin-1' si 'utf-8' falla)
@@ -169,10 +171,12 @@ def obtener_resultados(msgcorrelation_id,operacion):
                             data = json.loads(decoded_text)
                         except Exception:
                             # 2. Si falla lo anterior, intentar JSON directo
+                            # 2. Si falla lo anterior, intentar JSON directo.
                             try:
                                 data = json.loads(body_str)
                             except json.JSONDecodeError as je:
                                 print(f"Error crítico: El cuerpo no es Base64 ni JSON válido. Detalle: {je}")
+                                print(f"Error crítico: el cuerpo no es Base64 ni JSON válido. Detalle: {je}")
                                 data = {"error": "invalid_format", "raw": body_str}
 
 
@@ -180,9 +184,9 @@ def obtener_resultados(msgcorrelation_id,operacion):
                         if PropsSedMessage.get('idfromclient') == msgcorrelation_id:
                             print(f"\n========================================================================================================================================")
                             print(f"\n#🟢 TU MENSAJE HA SIDO ENCONTRADO: {PropsSedMessage['idfromclient']}                                                                   #")
-                            print(f"\n#🟢 TAMAÑO DEL MENSAJE: {PropsSedMessage['sizemessage'] } Bytes                                                                        #")
-                            print(f"\n#🟢 TIEMPO DE ENVIO A LA COLA {AppSendTime}")                                                                                         
-                            print(f"\n#🟢 TIEMPO INICIO EN LOGIC APP {PropsSedMessage['timereceived']} - TIEMPO SALIDA LOGIC APP {PropsSedMessage['timetoleave']}#") 
+                            print(f"\n#🟢 TAMAÑO DEL MENSAJE: {PropsSedMessage['sizemessage']} Bytes                                                                        #")
+                            print(f"\n#🟢 TIEMPO DE ENVÍO A LA COLA: {AppSendTime}                                                                                         #")
+                            print(f"\n#🟢 TIEMPO INICIO EN LOGIC APP: {PropsSedMessage['timereceived']} - TIEMPO SALIDA LOGIC APP: {PropsSedMessage['timetoleave']}#")
                             print(f"\n=======================================================================================================================================")
                             print(f'\n#🟢 Body: {json.dumps(data)}')
                             print(f"\n=======================================================================================================================================")
@@ -196,7 +200,7 @@ def obtener_resultados(msgcorrelation_id,operacion):
                             MsgFound = True
                             break  # salir después de encontrar mi respuesta
                         else:
-                            print(f"\n🔴No existen mensaje en la Cola {QueueOut} con Correlation Id  {msgcorrelation_id}")
+                            print(f"\n🔴 No existen mensajes en la cola {QueueOut} con Correlation Id {msgcorrelation_id}")
                             print(f"\n🔴Mensaje abandonado en la cola: {msg.correlation_id}")
                             receiver.abandon_message(msg)
                             print(f'\nPropiedades: {msg.application_properties}')
@@ -212,21 +216,21 @@ def creacion_payload_desde_archivo(IdCompany,archivoJson):
         with open (archivoJson,'r') as JsonToProcess:
             JsonRegLists = json.load(JsonToProcess)
             print(JsonRegLists)
-            #Cargar su contenido y crear un diccionario
+            # Cargar su contenido y crear un diccionario
         if "lines" not in JsonRegLists:
-            print("===================VAMOS A PROCESAR UN ENCABEZADO=====================")    
+            print("=================== VAMOS A PROCESAR UN ENCABEZADO =====================")
             for k,v in JsonRegLists.items():
                 newJsonReg[k] = v
             #newJsonReg['companyName']=str(IdCompany)
             #newJsonReg['environment']='TEST'
         else:
-            print("===================VAMOS A PROCESAR LINEAS=====================")    
+            print("=================== VAMOS A PROCESAR LÍNEAS =====================")
             for k,v in JsonRegLists.items():
                 newJsonReg[k] = v
             #newJsonReg['companyName']=str(IdCompany)
             #newJsonReg['environment']='TEST'
-        print(f"Objeto Diccionario Python: {newJsonReg}")    
-        print(f"Nueva arreglo Json: {json.dumps(newJsonReg,indent=4)}")
+        print(f"Objeto Diccionario Python: {newJsonReg}")
+        print(f"Nuevo arreglo JSON: {json.dumps(newJsonReg,indent=4)}")
         payload = json.dumps(newJsonReg,indent=4)
         return payload
     except TypeError as e:
@@ -240,17 +244,18 @@ def crear_payload_actualizacion(tipo,registro):
         payload = json.loads(registro)
 
 def entorno_pruebas():
-    print(f"\nSeleccione el entorno de pruebas de Business Central:")
-    print("1-. CRONUS ES" )
+    print("\nSeleccione el entorno de pruebas de Business Central:")
+    print("1-. CRONUS ES")
     print("2-. PRUEBA BC")
     print("3-. DEMO")
  
-    CompanySelect=int(input('Seleccione una opcion:'))
+    CompanySelect=int(input('Seleccione una opción: '))
     if CompanySelect==1:
        CompaniaTest="9c2a3721-0c80-ef11-ac21-0022483842ea" #CRONUS ES
        env="TEST"
     elif CompanySelect==2:
        CompaniaTest="41cc1c74-5021-f011-9af7-000d3ac04986" #PRUEBA BC
+       CompaniaTest="41cc1c74-5021-f011-9af7-000d3ac04986" #PRUEBAS BC
        env="TEST"
     elif CompanySelect==3:
         CompaniaTest="db22931c-25f2-f011-8405-000d3a88d306" #DEMO
@@ -261,12 +266,13 @@ def entorno_pruebas():
 def probar_payloads(IdCompany):
     JsonOption=9
     while JsonOption != 0:
-        print(f"\nSELECCIONE EL PAYLOAD EN FORMATO JSON A PROBAR :")
-        print("1-. Recepcion Inventario")
-        print("2-. Pedidos de Transferencia" )
+        print("\nSELECCIONE EL PAYLOAD EN FORMATO JSON A PROBAR:")
+        print("1-. Recepción Inventario")
+        print("2-. Pedidos de Transferencia")
+        print("2-. Pedidos de transferencia")
         print("0-. Salir")
 
-        JsonOption=int(input('Seleccione una opcion:'))
+        JsonOption=int(input('Seleccione una opción: '))
         if JsonOption==1:
             creacion_payload_desde_archivo(IdCompany,script_dir+"/RecepcionInventario.json")
         elif JsonOption==2:
@@ -279,15 +285,21 @@ if __name__ == "__main__":
     Environment=None
     while resp != 0:
 
-        print(f"\n1-. Seleccionar el entorno de Pruebas. Entorno de Prueba:{CompaniaTest} ({Environment})")
-        print(f"2-. [C]rear [A]ctualizar Recepcion Almacen.")
-        print(f"3-. [C]rear [A]ctualizar Transferencia Pedido.")
-        print(f"4-. [C]rear [A]ctualizar Transferencia Pedido Con Envio de Almacen.")
-        print(f"5-. [C]rear [A]ctualizar Transferencia Pedido Con Picking.")
-        print(f"6-. Crear Ajuste de Productos" )    
-        print(f"7-. Probar JSON payload")
-        print(f"0-. Salir.")
-        Opciones = input(f"Seleccione una Opcion Numeros[0,1,2,3,4,5] para para funcionalidad [C ò c] para metodo POST y [A ó a] para PATCH:")
+        print(f"\n1-. Seleccionar el entorno de Pruebas. Entorno de prueba actual: {CompaniaTest} ({Environment})")
+        print("2-. [C]rear / [A]ctualizar Recepción Almacén.")
+        print("3-. [C]rear / [A]ctualizar Transferencia Pedido.")
+        print("4-. [C]rear / [A]ctualizar Transferencia Pedido Con Envío de Almacén.")
+        print("5-. [C]rear / [A]ctualizar Transferencia Pedido Con Picking.")
+        print("6-. Crear Ajuste de Productos")
+        print(f"\n1-. Seleccionar el entorno de pruebas. Entorno de prueba actual: {CompaniaTest} ({Environment})")
+        print("2-. [C]rear / [A]ctualizar recepción de almacén.")
+        print("3-. [C]rear / [A]ctualizar pedido de transferencia.")
+        print("4-. [C]rear / [A]ctualizar pedido de transferencia con envío de almacén.")
+        print("5-. [C]rear / [A]ctualizar pedido de transferencia con picking.")
+        print("6-. Crear ajuste de productos")
+        print("7-. Probar JSON payload")
+        print("0-. Salir.")
+        Opciones = input("Seleccione una opción (ej: 2 C): [Número de opción] [C para POST / A para PATCH]: ")
         
         resp=int(list(Opciones)[0])
         if len(Opciones)>1:
@@ -299,6 +311,7 @@ if __name__ == "__main__":
                 Metodo = "POST"
         else:
             print("No se ha seleccionado una operación válida, se tomará por defecto la operación de CREAR[C=POST]")
+            print("No se ha seleccionado una operación válida, se tomará por defecto la operación de CREAR [C=POST]")
             Metodo = "POST"
 
         if resp==0:
@@ -316,7 +329,8 @@ if __name__ == "__main__":
                 crear_recepcion_inventario(correlationId,PayloadFile,CompaniaTest,Environment,Metodo)
                 obtener_resultados(correlationId,"RecepcionInventario")
             else:
-                print("❌ ******Debe seleccionar un entorno de Prueba de BC******")
+                print("❌ ****** Debe seleccionar un entorno de prueba de BC ******")
+                print("❌ ****** Debe seleccionar un entorno de pruebas de BC ******")
         elif resp == 3:
             if CompaniaTest != None:            
                 correlationId = str(uuid.uuid4())
@@ -325,7 +339,8 @@ if __name__ == "__main__":
                 obtener_resultados(correlationId,"TransferenciaPedidos")
 
             else:
-                print("❌ ******Debe seleccionar un entorno de Prueba de BC*****")
+                print("❌ ****** Debe seleccionar un entorno de prueba de BC ******")
+                print("❌ ****** Debe seleccionar un entorno de pruebas de BC ******")
         elif resp == 4:
             if CompaniaTest != None:            
                 correlationId = str(uuid.uuid4())
@@ -334,7 +349,8 @@ if __name__ == "__main__":
                 obtener_resultados(correlationId,"TransferenciaPedidosEnviosAlmacen")
 
             else:
-                print("❌ ******Debe seleccionar un entorno de Prueba de BC*****")
+                print("❌ ****** Debe seleccionar un entorno de prueba de BC ******")
+                print("❌ ****** Debe seleccionar un entorno de pruebas de BC ******")
             # curl --location --request POST 'https://api.businesscentral.dynamics.com/v2.0//DEMO/api/virtualOfficeGroup/integration/v1.0/companies(db22931c-25f2-f011-8405-000d3a88d306)/transferOrders(bba7deb9-7a21-f111-8340-7ced8da8a20f)/Microsoft.NAV.createWarehouseShipment'
         elif resp == 5:
             print("POR DEFINIR PICKING")
@@ -350,6 +366,6 @@ if __name__ == "__main__":
                 #correlationId = str(uuid.uuid4())
                 probar_payloads(CompaniaTest)
             else:
-                print("❌ ******Debe seleccionar un entorno de Prueba de BC*****")
+                print("❌ ****** Debe seleccionar un entorno de prueba de BC ******")
+                print("❌ ****** Debe seleccionar un entorno de pruebas de BC ******")
    
-

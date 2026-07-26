@@ -97,7 +97,7 @@ Antes de poder utilizar las APIs, Webhooks e integrar aplicaciones externas con 
 
 ### Recursos para pruebas
 
-Para facilitar la integración y pruebas de los Webhook de Business Central, está disponible un espacio de trabajo en Postman. Esto permite interactuar con la API sin necesidad de desarrollar código de cliente de manera inmediata.
+Para facilitar la integración y las pruebas de los webhooks de Business Central, está disponible un espacio de trabajo en Postman. Esto permite interactuar con la API sin necesidad de desarrollar código de cliente de manera inmediata.
 
 <LinkCard
   title="Colección Business Central (Integración Romana)"
@@ -618,7 +618,7 @@ El parámetro "changeType" indica el tipo de cambio:
 | :--- | :--- | :--- | 
 | type | Integer | Tipo de movimiento. |
 | code | Text[255] | Código único del ticket. |
-| sessionID | Integer | Identificador del lote de produccion. |
+| sessionID | Integer | Identificador del lote de producción. |
 | locationCode | Text[20] | Código del almacén de origen. |
 | destinationLocation | Text[20] | Código del almacén de destino. |
 | shippingAgentCode | Text[10]  | Código del transportista. |
@@ -649,8 +649,8 @@ El parámetro "changeType" indica el tipo de cambio:
  3) **Transferencia entrante**
  4) **Despacho de venta**
  5) **Transferencia intercompañia**
- 6) **Entrada - Prestamo recibidos**
- 7) **Salida - Prestamo recibidos**
+6) **Entrada - Préstamo recibidos**
+7) **Salida - Préstamo recibidos**
  8)  **Devolución de ventas**
  9) **Recibo de producción**
  10) **Registro de merma**
@@ -665,10 +665,10 @@ Los tipos de movimiento son los siguientes:
  - [Transferencia entrante](#transferencia-entrante)
  - [Despacho de venta](#despacho-de-venta)
  - [Transferencia intercompañia](#transferencia-intercompañia)
- - [Entrada - Prestamo recibidos](#entrada---prestamo-recibidos)
- - [Salida - Prestamo recibidos](#salida---prestamo-recibidos)
- - [Entrada - Prestamo otorgados](#entrada---prestamo-otorgados)
- - [Salida - Prestamo otorgados](#salida---prestamo-otorgados)
+- [Entrada - Préstamo recibidos](#entrada---prestamo-recibidos)
+- [Salida - Préstamo recibidos](#salida---prestamo-recibidos)
+- [Entrada - Préstamo otorgados](#entrada---prestamo-otorgados)
+- [Salida - Préstamo otorgados](#salida---prestamo-otorgados)
  - [Devolución de ventas](#devolucion-de-ventas)
  - [Recibo de producción](#recibo-de-produccion)
  - [Registro de merma](#registro-de-merma)
@@ -749,7 +749,7 @@ body
 }
 ```
 
-### Recepcion de compra
+### Recepción de compra
 
 las recepciones de compra son los movimientos de inventario que se generan al recibir productos adquiridos a través de órdenes de compra. Este proceso implica registrar la entrada de mercancía en el sistema, asegurando que el inventario se actualice correctamente y que los productos estén disponibles para su uso o venta.
 
@@ -926,7 +926,7 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-| lot | Text[20] | Número de lote del artículo. (opciona) |
+| lot | Text[20] | Número de lote del artículo. (opcional) |
 | quantity | Decimal | Cantidad de artículos en el lote. (opcional) |
 
 
@@ -1068,9 +1068,9 @@ body
 }
 ```
 
-### Entrada - Prestamos recibidos
+### Entrada - Préstamos recibidos
 
-Las entrada - prestamo recibidos son movimientos de inventario que se generan cuando se reciben productos prestados de otra compañía o entidad. Este tipo de movimiento permite registrar la entrada temporal de mercancía en el sistema. Los prestamos recibido se registrara como un ajuste de inventario.
+Las entrada - préstamo recibidos son movimientos de inventario que se generan cuando se reciben productos prestados de otra compañía o entidad. Este tipo de movimiento permite registrar la entrada temporal de mercancía en el sistema. Los préstamos recibido se registrara como un ajuste de inventario.
 
 ##### Campos requeridos
 
@@ -1136,9 +1136,9 @@ body
 }
 ```
 
-### Salida - Prestamo recibidos
+### Salida - Préstamo recibidos
 
-Las salida - prestamo recibidos son movimientos de inventario que se generan cuando se devuelven productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacen del prestamo recibido. Los prestamos recibido se registrara como un ajuste de inventario.
+Las salida - préstamo recibidos son movimientos de inventario que se generan cuando se devuelven productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacén del préstamo recibido. Los préstamos recibido se registrara como un ajuste de inventario.
 
 #### Campos requeridos
 
@@ -1204,9 +1204,9 @@ body
 }
 ```
 
-### Entrada - Prestamo otorgados
+### Entrada - Préstamo otorgados
 
-La entrada - prestamo otorgados son movimientos de inventario que se generan cuando se reciben productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la entrada de mercancía en el sistema. Los prestamos otorgados se registrara como un ajuste de inventario.
+La entrada - préstamo otorgados son movimientos de inventario que se generan cuando se reciben productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la entrada de mercancía en el sistema. Los préstamos otorgados se registrara como un ajuste de inventario.
 
 ##### Campos requeridos
 
@@ -1279,7 +1279,7 @@ body
 
 ### Salida - Prestamo otorgados
 
-La Salida - prestamo otorgados son movimientos de inventario que se generan cuando se entragan productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacen al almacen de prestamo otorgado. Los prestamos otorgados se registrara como un ajuste de inventario.
+La Salida - préstamo otorgados son movimientos de inventario que se generan cuando se entragan productos prestados a otra compañía o entidad. Este tipo de movimiento permite registrar la salida de inventario del almacén al almacén de préstamo otorgado. Los préstamos otorgados se registrara como un ajuste de inventario.
 
 #### Campos requeridos
 
@@ -1351,9 +1351,9 @@ body
 }
 ```
 
-### Devolucion de ventas
+### Devolución de ventas
 
-La devolucion de ventas es el proceso mediante el cual los productos vendidos son devueltos por el cliente al almacén o centro de distribución. Este movimiento implica registrar la entrada de mercancía devuelta en el sistema.
+La devolución de ventas es el proceso mediante el cual los productos vendidos son devueltos por el cliente al almacén o centro de distribución. Este movimiento implica registrar la entrada de mercancía devuelta en el sistema.
 
 #### Campos requeridos
 
@@ -1420,9 +1420,9 @@ body
 }
 ```
 
-### Recibo de Produccion 
+### Recibo de producción
 
-El recibo de producción es el proceso mediante el cual los productos fabricados o ensamblados se registran como entrada  de inventario de productos terminados en el sistema. Este movimiento asegura que el inventario refleje correctamente la cantidad de productos terminados en las ordenes de produccion.
+El recibo de producción es el proceso mediante el cual los productos fabricados o ensamblados se registran como entrada de inventario de productos terminados en el sistema. Este movimiento asegura que el inventario refleje correctamente la cantidad de productos terminados en las órdenes de producción.
 
 #### Campos requeridos
 
@@ -1488,7 +1488,7 @@ body
 
 ### Registro de merma
 
-EL registro de merma es el proceso mediante el cual se documenta la pérdida de inventario debido a factores como deterioro, caducidad, daños o errores en el manejo de los productos. Este movimiento permite ajustar el inventario para reflejar con precisión la cantidad disponible de productos.
+El registro de merma es el proceso mediante el cual se documenta la pérdida de inventario debido a factores como deterioro, caducidad, daños o errores en el manejo de los productos. Este movimiento permite ajustar el inventario para reflejar con precisión la cantidad disponible de productos.
 
 #### Campos requeridos
 
@@ -1560,7 +1560,7 @@ Para consultar manualmente las órdenes de compra, puedes consumir el endpoint e
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/outboundTransfers?$expand=outboundTransferLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/outboundTransfers?$expand=outboundTransferLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1603,7 +1603,7 @@ Authorization: Bearer {access_token}
 | locationCode | Text[20] | Código del almacén. |
 | lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
 
-**Campos de la respuesta (Lineas)**
+**Campos de la respuesta (Líneas)**
 
 | Nombre | Tipo | Descripción |
 | :--- | :--- | :--- |
@@ -1629,7 +1629,7 @@ Authorization: Bearer {access_token}
 El consumo de pedidos de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
 
 ```json
-POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/subscriptions
+POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 
@@ -1646,7 +1646,7 @@ Para consultar manualmente las órdenes de compra, puedes consumir el endpoint e
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/ShippingAgents?$expand=shippingAgentsPlates
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/ShippingAgents?$expand=shippingAgentsPlates
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1724,7 +1724,7 @@ El consumo de pedidos de venta puede integrarse mediante webhook para detectar c
 
 ```json
 POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 
@@ -1741,7 +1741,7 @@ Para consultar manualmente las órdenes de venta, puedes consumir el endpoint es
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesOrder?$expand=salesOrderLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesOrder?$expand=salesOrderLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1856,11 +1856,11 @@ Authorization: Bearer {access_token}
 
 **Consumir Endpoints**
 
-Para consultar manualmente las órdenes de devolucion  de venta, puedes consumir el endpoint estándar de Business Central.
+Para consultar manualmente las órdenes de devolución de venta, puedes consumir el endpoint estándar de Business Central.
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesReturnOrders?$expand=salesReturnOrderLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesReturnOrders?$expand=salesReturnOrderLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1901,8 +1901,8 @@ Authorization: Bearer {access_token}
 | :--- | :--- | :--- |
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
-| documentNo | Text[20] | codigo del numero de pedido de devolucion | 
-| locationCode | Text[20] | codigo del almacen | 
+| documentNo | Text[20] | Código del número de pedido de devolución | 
+| locationCode | Text[20] | Código del almacén | 
 | lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
 
 **Campos de la respuesta (Lineas)**
@@ -1910,21 +1910,21 @@ Authorization: Bearer {access_token}
 | Datos | Tipo | Descripción |
 | :--- | :--- | :--- |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
-| documentId | Text[20] | codigo del numero de pedido de devolucion | 
+| documentId | Text[20] | Código del número de pedido de devolución | 
 | sequence | Integer | Orden de aparición de la línea en el documento. |
 | lineType | Text[20] | Tipo de línea (ej. Item/Producto). |
 | lineObjectNumber | Text[20] | Código de referencia del producto. |
 | description | Text[100] | Descripción del producto. |
 | description2 | Text[50] | Descripción del producto 2. |
 | unitOfMeasureCode | Text[10] | Código de la unidad de medida. |
-| locationCode | Text[20] | Codigo del almacen | 
+| locationCode | Text[20] | Código del almacén | 
 | quantity | decimal | Cantidad solicitada. |
 | shippedQuantity | decimal | Cantidad ya enviada. |
 | invoicedQuantity | decimal | Cantidad facturada. |
 
-## Consumo Ordenes de produccion
+## Consumo de órdenes de producción
 
-### Obtener lista de Ordenes de produccion
+### Obtener lista de órdenes de producción
 
 **Consumir Endpoints**
 
@@ -1932,7 +1932,7 @@ Para consultar manualmente las órdenes de producción, puedes consumir el endpo
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1955,7 +1955,7 @@ Authorization: Bearer {access_token}
             "@odata.etag": "W/\"JzIwOzEzMDkzODA3OTgyNTU5MTYzMzE4MTswMDsn\"",
             "id": "105b4ba5-9074-f111-8070-002248360983",
             "lineNo": 10000,
-            "itermNo": "PTCM10021",
+            "itemNo": "PTCM10021",
             "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
             "description2": "",
             "unitMeasureCode": "UND",
@@ -1980,7 +1980,7 @@ Authorization: Bearer {access_token}
 | description2 | Text[50] | Descripción secundaria de la orden de producción. |
 | sourceType | Text[20] | Tipo de fuente de la orden de producción. |
 | sourceNo | Text[20] | Número de fuente de la orden de producción. |
-| dueDate | Date | Fecha límite de entrega de
+| dueDate | Date | Fecha límite de entrega de la orden. |
 | systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
 
 **Campos de la respuesta (Lineas)**
@@ -1990,7 +1990,7 @@ Authorization: Bearer {access_token}
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
 | lineNo | Integer | Número de línea de la orden de producción. |
-| itermNo | Text[20] | Número de artículo de la orden de producción. |
+| itemNo | Text[20] | Número de artículo de la orden de producción. |
 | description | Text[100] | Descripción del artículo de la orden de producción. |
 | description2 | Text[50] | Descripción secundaria del artículo de la orden de producción. |
 | unitMeasureCode | Text[10] | Código de la unidad de medida del artículo. |
@@ -2024,7 +2024,7 @@ body
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/items
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/companies({{companyId}})/items
 Content-Type: application/json 
 Authorization: Bearer {access_token}
 ```
@@ -2116,7 +2116,7 @@ body
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/customers
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/companies({{companyId}})/customers
 Content-Type: application/json 
 Authorization: Bearer {access_token}
 ```
@@ -2201,7 +2201,7 @@ El maestro de almacenes contiene toda la información relacionada con los sitios
 
 ```json
 POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 body
@@ -2216,7 +2216,7 @@ body
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/v2.0/companies({{companyId}})/Locations
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/companies({{companyId}})/Locations
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2288,7 +2288,7 @@ body
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/%TenantID%/%enviromentName%/api/v2.0/companies(%companyId%)/vendors
+https://api.businesscentral.dynamics.com/v2.0/%TenantID%/%environmentName%/api/v2.0/companies(%companyId%)/vendors
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2376,7 +2376,7 @@ Authorization: Bearer {access_token}
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{TenantID}/{enviromentName}/api/v2.0/companies({companyId})/unitsOfMeasure
+https://api.businesscentral.dynamics.com/v2.0/{TenantID}/{environmentName}/api/v2.0/companies({companyId})/unitsOfMeasure
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2417,7 +2417,7 @@ El maestro de transportistas contiene toda la información relacionada con el li
 
 ```json
 POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 {
@@ -2431,7 +2431,7 @@ Authorization: Bearer {access_token}
 La suscripción de transportistas se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
 ```text 
-POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 ```
 </Aside>
 
@@ -2440,7 +2440,7 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentNa
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents?$expand=shippingAgentsVehicles
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents?$expand=shippingAgentsVehicles
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -2517,7 +2517,7 @@ El maestro de código motivo contiene toda la información relacionada con el li
 GET 
 
 ```json
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
 ```
 
 Content-Type: application/json 
@@ -2527,7 +2527,7 @@ Authorization: Bearer &#123;access_token&#125;
 La suscripción de código de motivo se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
 ```text
-POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 ```
 </Aside>
 

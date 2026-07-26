@@ -1,11 +1,23 @@
 ---
-title: 'Integraciones Ordenes de Producción'
-description: Guía para integraciones con ordenes de produccion externas.
+title: 'Integraciones Órdenes de Producción'
+description: Guía para integraciones con órdenes de producción externas.
 ---
 
-## Integración de ordenes de producción
+import { LinkCard } from '@astrojs/starlight/components';
 
-### Estructura basica
+## Recursos para pruebas
+
+Para facilitar la integración y las pruebas de los webhooks de Business Central, está disponible un espacio de trabajo en Postman. Esto permite interactuar con la API sin necesidad de desarrollar código de cliente de manera inmediata.
+
+<LinkCard
+    title="Business Central (Integración Producción)"
+  href="https://documenter.getpostman.com/view/51769148/2sBY4Qtfbb"
+  target={'_blank'}
+/>
+
+## Integración de órdenes de producción
+
+### Estructura básica
 
 ```json
 {
@@ -38,32 +50,32 @@ description: Guía para integraciones con ordenes de produccion externas.
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-| prodOrder | Text[20] | Nro. Orden de producción. |
-| prodOrderExt | Text[255] | Nro. Orden de producción externa. |
+| prodOrder | Text | Nro. de orden de producción. |
+| prodOrderExt | Text | Nro. de orden de producción externa. |
 | locationCode | Text[255] | Código de ubicación. |
 | lote | Text[20] | Nro. de lote. |
 
-##### Lineas
+##### Líneas
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
 | itemNoExt | Text[255] | Código del artículo externo | 
 | unitMeasureCode | Text[255] | Código de la unidad de medida |
-| quantity | Decimal | Cantidad del articulo | 
+| quantity | Decimal | Cantidad del artículo | 
 | finishedQuantity | Decimal | Cantidad finalizada |
 
 #### Componentes 
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-| itemNoExt | Text[255] | Código del artículo externo | 
-| unitMeasureCode | Text[255] | Código de la unidad de medida |
+| itemNoExt | Text | Código del artículo externo. | 
+| unitMeasureCode | Text | Código de la unidad de medida. |
 | estimatedquantityPer | Decimal | Cantidad estimada por unidad |
 | realquantityPer | Decimal | Cantidad real por unidad |
 
-### Creacion tickets de produccion 
+### Creación de tickets de producción 
 
-para crear tickets de produccion se debe utilizar la siguiente estructura:
+Para crear tickets de producción se debe utilizar la siguiente estructura:
 
 
 ```json
@@ -74,8 +86,8 @@ Header{
   Authorization: Bearer {SharedAccessSignature}
   companyID: {companyID} // Id de la compañía en Business Central
   environment: {environment} // Nombre del ambiente en Business Central
-  operationType: "POST" // Tipo de operacion
-  requestId: {requestId} // Id de mensaje
+  operationType: "POST" // Tipo de operación
+  requestId: {requestId} // Id del mensaje
 }
 body
 {
@@ -134,19 +146,18 @@ body
 
 
 
-# Consumo de Maestros de Datos
+# Consumo de maestros de datos
 
-## Consumo Ordenes de produccion
+## Consumo de órdenes de producción
 
-### Obtener lista de Ordenes de produccion
+### Obtener lista de órdenes de producción
 
-**Consumir Endpoints**
+**Consumir endpoints**
 
-Para consultar manualmente las órdenes de producción, puedes consumir el endpoint estándar de Business Central.
-
+Para consultar manualmente las órdenes de producción, puedes consumir el endpoint personalizado de Business Central.
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders?$expand=prodOrderLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -194,17 +205,17 @@ Authorization: Bearer {access_token}
 | description2 | Text[50] | Descripción secundaria de la orden de producción. |
 | sourceType | Text[20] | Tipo de fuente de la orden de producción. |
 | sourceNo | Text[20] | Número de fuente de la orden de producción. |
-| dueDate | Date | Fecha límite de entrega de
+| dueDate | Date | Fecha límite de entrega de la orden. |
 | systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
 
-**Campos de la respuesta (Lineas)**
+**Campos de la respuesta (Líneas)**
 
 | Nombre | Tipo | Descripción |
 | :--- | :--- | :--- |
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
 | lineNo | Integer | Número de línea de la orden de producción. |
-| itermNo | Text[20] | Número de artículo de la orden de producción. |
+| itemNo | Text[20] | Número de artículo de la orden de producción. |
 | description | Text[100] | Descripción del artículo de la orden de producción. |
 | description2 | Text[50] | Descripción secundaria del artículo de la orden de producción. |
 | unitMeasureCode | Text[10] | Código de la unidad de medida del artículo. |
