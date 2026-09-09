@@ -564,7 +564,6 @@ El parámetro "changeType" indica el tipo de cambio:
     "type": 1,
     "code": "2232326E3",
     "DocumentNo": "C-PDA0000258",
-    "sessionID": 0,
     "locationCode":"ALMACEN 1",
     "destinationLocation": "",
     "shippingAgentCode": "CDGD",
@@ -583,14 +582,16 @@ El parámetro "changeType" indica el tipo de cambio:
             "totalCost": 123.56,
             "originCompany": "",
             "DestinationCompany": "",
-            "lots":[
+            "ticketLinelots":[
                 {
-                    "lot": "gdgdgdg",
-                    "quantity": 2
+                    "code": "gdgdgdg",
+                    "quantity": 2,
+                    "expirationDate": "2026-07-17"
                 },
                 {
-                    "lot": "gdgdgdgdsd",
-                    "quantity": 3
+                    "code": "gdgdgdgdsd",
+                    "quantity": 3,
+                    "expirationDate": "2026-07-17"
                 }
             ]
 
@@ -641,6 +642,8 @@ El parámetro "changeType" indica el tipo de cambio:
 | totalCost | Decimal | Costo total de los artículos en la línea. |
 | originCompany | Text[30] | Código de la compañía de origen para la línea. |
 | destinationCompany | Text[30] | Código de la compañía de destino para la línea. |
+
+#####v
 
 #### Tipos de movimiento
 
@@ -776,6 +779,15 @@ las recepciones de compra son los movimientos de inventario que se generan al re
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+##### Lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. |
+
 #### Creación de ticket
 
 ```json
@@ -805,7 +817,14 @@ body
             "locationCode":"ALMACEN 1",
             "quantity": 1,
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         },
         {
             "itemNo": "1000",
@@ -814,7 +833,14 @@ body
             "locationCode":"ALMACEN 1",
             "reasonCode": "PRUEBA",
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         }
     ]
 }
@@ -926,8 +952,9 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-| lot | Text[20] | Número de lote del artículo. (opcional) |
-| quantity | Decimal | Cantidad de artículos en el lote. (opcional) |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. |
 
 
 #### Creación de ticket
@@ -963,12 +990,14 @@ body
             "tareWeight": 0,
             "ticketLinelots":[
                 {
-                    "lot": "gdgdgdg",
-                    "quantity": 1
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
                 },
                 {
-                    "lot": "gdgdgdgdsd",
-                    "quantity": 2
+                    "code": "gdgdgdgdsd",
+                    "quantity": 2,
+                    "ExpirationDate": "2026-07-17"
                 }
             ]
         },
@@ -980,10 +1009,11 @@ body
             "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0,
-            "lots":[
+            "ticketLinelots":[
                 {
-                    "lot": "gdgdgdg",
-                    "quantity": 1
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
                 }
             ]
         }
@@ -2409,6 +2439,79 @@ Authorization: Bearer {access_token}
 | symbol | Text[10] | El símbolo gráfico de la unidad. |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
 
+### Maestro de unidades de medida Por producto
+
+El maestro de unidades de medida por producto contiene toda la información relacionada con las unidades de medida utilizadas en los artículos registrados en la empresa.
+
+**Suscripcion del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": UrlNotificationId,
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/itemUnitOfMeasures
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de transportistas se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+#### Endpoint para Listado de unidades de medida por producto (Sincronización Manual)
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/itemUnitOfMeasures
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/shippingAgents",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzIwOzEyNDQwMzk3NDIxMzY1NTM1NzU0MTswMDsn\"",
+            "id": "804f1d7c-8da0-f011-b419-002248e09013",
+            "number": "1000",
+            "code": "PCS",
+            "qtyperUnitofMeasure": 1,
+            "qtyRoundingPrecision": 0,
+            "length": 0,
+            "width": 0,
+            "height": 0,
+            "weight": 0
+        }
+    ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.context | String (URL) | La URL que define el esquema y el origen de los datos |
+| @odata.etag | String | Un identificador de versión del registro. |
+| id | Guid | ID de unidad. |
+| number | Text[20] | Es el identificador del producto. | 
+| code | Text[10] | Es el identificador de la unidad de medida |
+| qtyperUnitofMeasure | Decimal | Cantidad de unidades por unidad de medida. |
+| qtyRoundingPrecision | Decimal | Precisión de redondeo de la cantidad. |
+| length | Decimal | Longitud del producto en la unidad de medida. |
+| width | Decimal | Ancho del producto en la unidad de medida. |
+| height | Decimal | Altura del producto en la unidad de medida. |
+| weight | Decimal | Peso del producto en la unidad de medida. |
+
 ### Maestro de Transportistas
 
 El maestro de transportistas contiene toda la información relacionada con el listado de transportistas registrados en la empresa.
@@ -2422,7 +2525,7 @@ Content-Type: application/json
 Authorization: Bearer {access_token}
 {
   "notificationUrl": UrlNotificationId,
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/shippingAgents",
+  "resource": "/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgents",
   "clientState": ""
 }
 ```
@@ -2434,7 +2537,6 @@ La suscripción de transportistas se gestiona a través de una API personalizada
 POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 ```
 </Aside>
-
 
 #### Endpoint para Listado de transportistas (Sincronización Manual)
 
@@ -2497,6 +2599,70 @@ Authorization: Bearer {access_token}
 | lastModifiedDateTime| Datetime | Fecha de la ultima modificacion |
 
 
+### Maestro de vehiculos de transportistas
+
+El maestro de vehiculos de transportistas contiene toda la información relacionada con el listado de vehiculos de transportistas registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+{
+  "notificationUrl": UrlNotificationId,
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgentsVehicles",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de transportistas se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+#### Endpoint para listado de vehiculos de transportistas (Sincronización Manual)
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/shippingAgentsVehicles
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/shippingAgentsVehicles",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzE5OzExNTAxMjAxOTk0MTYzNDU4NjExOzAwOyc=\"",
+            "shippingAgentCode": "DHL",
+            "id": "63764dd7-a496-f111-8072-6045bd399ce2",
+            "code": "RGR5678",
+            "description": "PRUEBA",
+            "lastModifiedDateTime": "2026-08-12T23:23:40.463Z"
+        }
+    ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+|---|---|---|
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag |  | Un identificador de versión del registro. |
+| shippingAgentCode | Text[10] | Es el código del transportista. |
+| id | Guid | ID del vehiculo. |
+| code | Text[15] | codigo del vehiculo |
+| description | Text[100] | descripcion del vehiculo |
+| lastModifiedDateTime| Datetime | Fecha de la ultima modificacion |
 
 ### Maestro de Códigos de motivo
 El maestro de código motivo contiene toda la información relacionada con el listado de códigos de motivo utilizados en ajustes de inventario y transferencia de pedidos.
@@ -2507,7 +2673,7 @@ El maestro de código motivo contiene toda la información relacionada con el li
 ```json
 {
   "notificationUrl": "UrlNotificationId",
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/reasonCodes",
+  "resource": "/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/reasonCodes",
   "clientState": ""
 }
 ```

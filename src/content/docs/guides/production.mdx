@@ -24,7 +24,8 @@ Para facilitar la integración y las pruebas de los webhooks de Business Central
     "prodOrder": "PROD001",
     "prodOrderExt": "PRODEXT001",
     "locationCode": "MP",
-    "lote": "13244234",
+    "type": "PBA"
+    "tag": "13244234",
     "productionOrderlines":[
         {
             "itemNoExt": "PTCM10",
@@ -73,7 +74,9 @@ Para facilitar la integración y las pruebas de los webhooks de Business Central
 | estimatedquantityPer | Decimal | Cantidad estimada por unidad |
 | realquantityPer | Decimal | Cantidad real por unidad |
 
-### Creación de tickets de producción 
+### Creación de tickets de producción (ABA)
+
+Las ordenes de produccion provenientes de ABA provienen de una orden de produccion externa, por lo que se debe enviar el campo prodOrderExt con el valor de la orden de produccion externa. Y asociarse a la orden de produccion interna que se genere en Business Central, la cual se enviara en el campo prodOrder. Los componentes de la orden de produccion se deben enviar en la propiedad `productionOrderComponents`.
 
 Para crear tickets de producción se debe utilizar la siguiente estructura:
 
@@ -93,7 +96,7 @@ body
 {
     "prodOrder": "OPL001",
     "prodOrderExt": "PROD0004",
-    "lote": "13244234",
+    "type": "ABA",
     "productionOrderlines":[
         {
             "itemNoExt": "PTCM10",
@@ -106,7 +109,6 @@ body
                     "unitMeasureCode": "KG",
                     "estimatedquantityPer": 1,
                     "realquantityPer": 3
- 
                 }
             ]
         }
@@ -114,16 +116,81 @@ body
 } 
 ```
 
-** Datos Obtenidos**
+**Datos Obtenidos**
 
 ```json
 {
     "@odata.etag": "W/\"JzE5OzQ0OTgzNDcwMzEwMjk4OTg5MDkxOzAwOyc=\"",
     "id": "7c4c62ef-a587-f111-8072-002248360983",
+    "prodOrderID": 1,
     "prodOrder": "F-OPL0236",
     "prodOrderExt": "PRODEXT001",
-    "locationCode": "",
-    "lote": "13244234",
+    "locationCode": "ALMACEN 2",
+    "tag": "",
+    "date": "2026-07-24T21:23:39.087Z",
+    "modifiedAt": "2026-07-24T21:23:39.093Z",
+    "productionOrderlines": [
+        {
+            "@odata.etag": "W/\"JzIwOzExNzA0ODA3NTk1NDUzNjQyMTQ3MTswMDsn\"",
+            "id": "7d4c62ef-a587-f111-8072-002248360983",
+            "productionOrderNo": "F-OPL0236",
+            "lineNo": 10000,
+            "itemNoExt": "PTCM10",
+            "itemNo": "PTCM01001",
+            "description": "Pollo Beneficiado Grado A Embolsado F",
+            "unitMeasureCode": "KG",
+            "quantity": 10,
+            "finishedQuantity": 10,
+            "systemModifiedAt": "2026-07-24T21:23:39.17Z",
+            "productionOrderComponents":[
+                {
+                    "itemNoExt":"mp003",
+                    "unitMeasureCode": "KG",
+                    "estimatedquantityPer": 1,
+                    "realquantityPer": 3
+                }
+            ]
+        }
+    ]
+},
+```
+
+#### Encabezado  
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| prodOrderID | Integer | El ID interno de la orden de producción. |
+| prodOrder | Text[20] | Código de la orden de producción. |
+| prodOrderExt | Text[20] | Código de la orden de producción externa. |
+| locationCode | Text[20] | Código de ubicación. |
+| tag | Text[20] | Código de etiqueta. |
+| date | DateTime | Fecha de creación del registro. |
+| modifiedAt | DateTime | Fecha de modificación del registro. |
+
+#### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| productionOrderNo | Text[20] | Código de la orden de producción. |
+| 
+
+### Creación de tickets de producción (PBA)
+
+Las ordenes de produccion provienen de una produccion ABA, y se registrar como recibo de produccion parcial bajo una orden de produccion interna, por lo que se debe enviar el campo prodOrder con el valor de la orden de produccion interna.
+
+```json
+{
+    "@odata.etag": "W/\"JzE5OzQ0OTgzNDcwMzEwMjk4OTg5MDkxOzAwOyc=\"",
+    "id": "7c4c62ef-a587-f111-8072-002248360983",
+    "prodOrderID": 1,
+    "type": "PBA",
+    "prodOrder": "F-OPL0236",
+    "locationCode": "ALMACEN 2",
+    "tag": "12434",
     "date": "2026-07-24T21:23:39.087Z",
     "modifiedAt": "2026-07-24T21:23:39.093Z",
     "productionOrderlines": [
@@ -144,7 +211,36 @@ body
 },
 ```
 
+**Datos Obtenidos**
 
+#### Encabezado 
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| prodOrderID | Integer | El ID interno de la orden de producción. |
+| prodOrder | Text[20] | Código de la orden de producción. |
+| locationCode | Text[20] | Código de ubicación. |
+| tag | Text[20] | Código de etiqueta. |
+| date | DateTime | Fecha de creación del registro. |
+| modifiedAt | DateTime | Fecha de modificación del registro. |
+
+#### Lineas
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| productionOrderNo | Text[20] | Código de la orden de producción. |
+| lineNo | Integer | Número de línea. |
+| itemNoExt | Text[20] | Código externo del artículo. |
+| itemNo | Text[20] | Código del artículo. |
+| description | Text[100] | Descripción del artículo. |
+| unitMeasureCode | Text[10] | Código de unidad de medida. |
+| quantity | Decimal(18,2) | Cantidad del artículo. |
+| finishedQuantity | Decimal(18,2) | Cantidad terminada del artículo. |
+| systemModifiedAt | DateTime | Fecha de modificación del registro. |
 
 # Consumo de maestros de datos
 
