@@ -280,6 +280,66 @@ Especifica los criterios de clasificación de los recursos de una colección. Si
 GET .../salesOrders?$orderby=orderDate desc, customerName asc
 ```
 
+### Uso de $filter
+
+El parámetro `$filter` es una opción de consulta de OData v4 utilizada en las APIs y Web Services de Dynamics 365 Business Central para restringir los conjuntos de resultados devueltos por un endpoint.
+
+#### Operadores Disponibles
+
+##### Operadores de Comparación
+
+Permiten evaluar la igualdad o diferencia de campos numéricos, de texto o fechas.
+
+| Operador | Descripción | Ejemplo |
+| --- | --- | --- |
+| eq | Igual a | `?$filter=balance eq '1000'` |
+| ne | Diferente de | `?$filter=balance ne '1000'` |
+
+##### Operadores Relacionales (Rangos)
+
+Se emplean principalmente para campos numéricos, monetarios, de fecha y hora.
+
+| Operador | Descripción | Ejemplo |
+| --- | --- | --- |
+| gt | Mayor que | `?$filter=balance gt '1000'` |
+| ge | Mayor o igual que | `?$filter=balance ge '1000'` |
+| lt | Menor que | `?$filter=balance lt '1000'` |
+| le | Menor o igual que | `?$filter=balance le '1000'` |
+
+##### Funciones de Cadenas de Texto
+
+Diseñadas específicamente para propiedades de tipo texto.
+
+| Operador | Descripción | Ejemplo |
+| --- | --- | --- |
+| startswith | Comienza con | `?$filter=startswith(displayName,'A')` |
+| endswith | Termina con | `?$filter=endswith(displayName,'Z')` |
+| contains | Contiene | `?$filter=contains(displayName,'abc')` |
+
+#### Sintaxis de uso
+
+```json 
+GET /v2.0/{tenantId}/{environment}/api/v2.0/companies({companyId})/{entity}?$filter={condición}
+```
+
+```json 
+GET /.../salesOrders?$filter=documentDate ge 2026-01-01
+```
+
+uso de `or` agrupado con parentesis
+
+```json
+GET /v2.0/company/{id}/items?$filter=(type eq 'Inventory' or type eq 'Service') and unitPrice gt 100
+```
+
+multiple filtros de texto combinados
+
+```json
+GET /v2.0/company/{id}/customers?$filter=(startswith(number, 'A') or startswith(number, 'B')) and blocked eq 'Garantía'
+```
+
+
+
 ## Uso de Webhook con Business Central
 
 Los Webhooks son mecanismos de comunicación que permiten la integración en tiempo real entre Business Central y aplicaciones externas. 
@@ -954,7 +1014,7 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 | :--- | :--- | :--- |
 | code | Text[20] | Código del lote del artículo. |
 | quantity | Decimal | Cantidad de artículos en el lote. |
-| ExpirationDate | Date | Fecha de vencimiento del lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. (opcional) |
 
 
 #### Creación de ticket
@@ -1652,31 +1712,13 @@ Authorization: Bearer {access_token}
 
 ## Consumo Pedidos de Compra
 
-### Obtener lista de Pedidos de Compra
-
-**Suscripción de webhook**
-
-El consumo de pedidos de compra puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
-
-```json
-POST https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/subscriptions
-Content-Type: application/json
-Authorization: Bearer {access_token}
-
-{
-  "notificationUrl": "%UrlNotificationId%",
-  "resource": "api/v2.0/companies({{companyId}})/purchaseOrders",
-  "clientState": ""
-}
-```
-
 **Consumir Endpoints**
 
 Para consultar manualmente las órdenes de compra, puedes consumir el endpoint estándar de Business Central.
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/ShippingAgents?$expand=shippingAgentsPlates
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/purchaseOrders?$expand=purchaseOrderLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1685,32 +1727,37 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.etag": "W/\"JzE5OzIzNzg3NTQxMzQ1MDAzNzUwODExOzAwOyc=\"",
-    "id": "78741a08-9f86-f111-8072-002248360983",
-    "documentNo": "106012",
-    "locationCode": "ALMACEN 2",
-    "lastModifiedDateTime": "2026-07-23T14:01:42.917Z",
-    "purchaseOrderLines": [
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/purchaseOrders",
+    "value": [
         {
-            "@odata.etag": "W/\"JzE5OzU5NDQxNzUyNzM1ODMwMTQ0ODcxOzAwOyc=\"",
-            "id": "1c4f18fd-9e86-f111-8072-002248360983",
-            "documentId": "106012",
-            "sequence": 10000,
-            "lineType": "Item",
-            "lineObjectNumber": "1000",
-            "description": "MORTADELA TIPO 1",
-            "description2": "",
-            "unitOfMeasureCode": "PCS",
-            "locationCode": "ALMACEN 2",
-            "quantity": 10,
-            "directUnitCost": 65.391,
-            "receivedQuantity": 0,
-            "invoicedQuantity": 0,
-            "invoiceQuantity": 0,
-            "receiveQuantity": 0
+            "@odata.etag": "W/\"JzIwOzEyMDk3Mjc5NzY4OTMxMjc5OTUxMTswMDsn\"",
+            "id": "1a67d2d9-9d9c-f111-8073-0022483784b6",
+            "documentNo": "106025",
+            "locationCode": "ALMACEN 1",
+            "lastModifiedDateTime": "2026-08-20T13:48:41.347Z",
+            "purchaseOrderLines": [
+                {
+                    "@odata.etag": "W/\"JzIwOzEyOTE2OTE1NTQyMDQwMzYzMzYxMTswMDsn\"",
+                    "id": "60f216ca-9d9c-f111-8073-0022483784b6",
+                    "documentId": "106025",
+                    "sequence": 10000,
+                    "lineType": "Item",
+                    "lineObjectNumber": "DSDSDSDSSSRETGYTR5TG",
+                    "description": "MORTADELA TIPO 1",
+                    "description2": "",
+                    "unitOfMeasureCode": "PCS",
+                    "locationCode": "ALMACEN 1",
+                    "quantity": 5,
+                    "directUnitCost": 140,
+                    "receivedQuantity": 0,
+                    "invoicedQuantity": 0,
+                    "invoiceQuantity": 4.5,
+                    "receiveQuantity": 4.5
+                }
+            ]
         }
     ]
-    }
+}
 ```
 
 **Campos de la respuesta (Encabezado)**
@@ -1747,23 +1794,6 @@ Authorization: Bearer {access_token}
 ## Consumo Pedidos de Venta
 
 ### Obtener lista de Pedidos de Venta
-
-**Suscripción de webhook**
-
-El consumo de pedidos de venta puede integrarse mediante webhook para detectar cambios sobre el recurso en Business Central.
-
-```json
-POST 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
-Content-Type: application/json
-Authorization: Bearer {access_token}
-
-{
-  "notificationUrl": "UrlNotificationId",
-  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/salesOrders",
-  "clientState": ""
-}
-```
 
 **Consumir Endpoints**
 
