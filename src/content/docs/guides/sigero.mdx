@@ -1642,7 +1642,28 @@ body
 
 ## Consumo Transferencias Entrantes
 
-### Obtener lista de Transferencias Entrantes
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/outboundTransfers",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de transferencia entrantes se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
 
 **Consumir Endpoints**
 
@@ -1712,13 +1733,36 @@ Authorization: Bearer {access_token}
 
 ## Consumo Pedidos de Compra
 
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/purchaseOrders",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de pedidos de compra se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
 **Consumir Endpoints**
 
 Para consultar manualmente las órdenes de compra, puedes consumir el endpoint estándar de Business Central.
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/purchaseOrders?$expand=purchaseOrderLines
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/outboundTransfers?$expand=outboundTransferLines
 Content-Type: application/json
 Authorization: Bearer {access_token}
 ```
@@ -1727,36 +1771,34 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/purchaseOrders",
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/outboundTransfers",
     "value": [
         {
-            "@odata.etag": "W/\"JzIwOzEyMDk3Mjc5NzY4OTMxMjc5OTUxMTswMDsn\"",
-            "id": "1a67d2d9-9d9c-f111-8073-0022483784b6",
-            "documentNo": "106025",
+            "@odata.etag": "W/\"JzE5Ozg4NjAyNDE5NzEwMzgxMDQ2ODAxOzAwOyc=\"",
+            "id": "b9f27ed5-9ec8-f111-a056-002248d2c55e",
+            "documentNo": "1103",
             "locationCode": "ALMACEN 1",
-            "lastModifiedDateTime": "2026-08-20T13:48:41.347Z",
-            "purchaseOrderLines": [
+            "destinationCode": "ALMACEN 2",
+            "lastModifiedDateTime": "2026-10-15T13:46:36.977Z",
+            "outboundTransferLines": [
                 {
-                    "@odata.etag": "W/\"JzIwOzEyOTE2OTE1NTQyMDQwMzYzMzYxMTswMDsn\"",
-                    "id": "60f216ca-9d9c-f111-8073-0022483784b6",
-                    "documentId": "106025",
+                    "@odata.etag": "W/\"JzE4OzExNzUxMTg4NjMwNTAwNjY4MDE7MDA7Jw==\"",
+                    "id": "91a322bb-9ec8-f111-a056-002248d2c55e",
+                    "documentId": "1103",
                     "sequence": 10000,
-                    "lineType": "Item",
-                    "lineObjectNumber": "DSDSDSDSSSRETGYTR5TG",
-                    "description": "MORTADELA TIPO 1",
-                    "description2": "",
-                    "unitOfMeasureCode": "PCS",
-                    "locationCode": "ALMACEN 1",
-                    "quantity": 5,
-                    "directUnitCost": 140,
-                    "receivedQuantity": 0,
-                    "invoicedQuantity": 0,
-                    "invoiceQuantity": 4.5,
-                    "receiveQuantity": 4.5
+                    "locationCode": "1001",
+                    "variantCode": "",
+                    "description": "SAL",
+                    "quantity": 10,
+                    "netWeight": 0,
+                    "tareWeight": 0,
+                    "quantityReceived": 0,
+                    "quantityOutstanding": 0,
+                    "quantityShipped": 10,
+                    "lastModifiedDateTime": "2026-10-15T13:47:42.5Z"
                 }
             ]
-        }
-    ]
+        },
 }
 ```
 
@@ -1768,6 +1810,7 @@ Authorization: Bearer {access_token}
 | id | GUID | Identificador único universal del registro. |
 | documentNo | Text[20] | Número del documento de compra. |
 | locationCode | Text[20] | Código del almacén. |
+| destinationCode | Text[20] | Código del almacén de destino. |
 | lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
 
 **Campos de la respuesta (Lineas)**
@@ -1784,6 +1827,7 @@ Authorization: Bearer {access_token}
 | description | String | Descripción del producto (SULFATO DE SODIO). |
 | description2 | String | Información adicional o secundaria del producto. |
 | unitOfMeasureCode | String | Código de la unidad de medida (KG). |
+| locationCode | String | Código del almacén |
 | quantity | Decimal | Cantidad total solicitada (300). |
 | directUnitCost | Decimal | Costo unitario directo del producto. |
 | receivedQuantity | Decimal | Cantidad física ya recibida (295). |
@@ -1793,7 +1837,28 @@ Authorization: Bearer {access_token}
 
 ## Consumo Pedidos de Venta
 
-### Obtener lista de Pedidos de Venta
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/salesOrders",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de pedidos de venta se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
 
 **Consumir Endpoints**
 
@@ -1801,8 +1866,7 @@ Para consultar manualmente las órdenes de venta, puedes consumir el endpoint es
 
 ```json
 GET 
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesOrder?$expand=salesOrderLines
-Content-Type: application/json
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesOrders?$expand=salesOrderLines
 Authorization: Bearer {access_token}
 ```
 
@@ -1810,67 +1874,28 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesOrders",
-    "value": [
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesOrders/$entity",
+    "@odata.etag": "W/\"JzE5OzM4NDg1MTY3MDc4OTgwMDMzMjAxOzAwOyc=\"",
+    "id": "c6002058-4ec8-f111-a056-002248373d44",
+    "documentNo": "101026",
+    "locationCode": "ALMACEN 2",
+    "systemCreatedAt": "2026-10-15T04:10:34.54Z",
+    "systemModifiedAt": "2026-10-15T04:10:34.54Z",
+    "salesOrderLines": [
         {
-            "@odata.etag": "W/\"JzE5OzI4NTEyNDcwNjYxOTg5MjE5ODExOzAwOyc=\"",
-            "id": "e44d1923-4f60-f111-ab09-7ced8da80af9",
-            "number": "101015",
-            "orderDate": "2025-11-15",
-            "postingDate": "2025-11-15",
-            "customerNumber": "10000",
-            "customerName": "Adatum Corporation",
-            "currencyCode": "",
-            "priceIncludeTax": false,
-            "status": "Released",
-            "lastModifiedDateTime": "2026-07-23T13:44:41.733Z",
-            "salesOrderLines": [
-                {
-                    "@odata.etag": "W/\"JzE5Ozk1ODEzNDIxMDAxNjM0NzAwNTYxOzAwOyc=\"",
-                    "id": "f5893329-4f60-f111-ab09-7ced8da80af9",
-                    "documentId": "101015",
-                    "sequence": 10000,
-                    "lineType": "Item",
-                    "lineObjectNumber": "PTCM01001",
-                    "description": "Pollo Beneficiado Grado A Embolsado F",
-                    "description2": "",
-                    "unitOfMeasureCode": "KG",
-                    "locationCode": "ALMACEN 2",
-                    "quantity": 10,
-                    "shippedQuantity": 0,
-                    "invoicedQuantity": 0
-                }
-            ]
-        },
-        {
-            "@odata.etag": "W/\"JzE4Ozg1NDI1NDg5MTM0ODk0NTg3NTE7MDA7Jw==\"",
-            "id": "8559d70f-a186-f111-8072-002248360983",
-            "number": "101016",
-            "orderDate": "2025-11-15",
-            "postingDate": "2025-11-15",
-            "customerNumber": "10000",
-            "customerName": "Adatum Corporation",
-            "currencyCode": "",
-            "priceIncludeTax": false,
-            "status": "Released",
-            "lastModifiedDateTime": "2026-07-23T14:16:55.747Z",
-            "salesOrderLines": [
-                {
-                    "@odata.etag": "W/\"JzE5OzUwNjU3NDA3NDEwMTM0NzMyNTExOzAwOyc=\"",
-                    "id": "14b21b18-a186-f111-8072-002248360983",
-                    "documentId": "101016",
-                    "sequence": 10000,
-                    "lineType": "Item",
-                    "lineObjectNumber": "1000",
-                    "description": "MORTADELA TIPO 1",
-                    "description2": "",
-                    "unitOfMeasureCode": "PCS",
-                    "locationCode": "ALMACEN 2",
-                    "quantity": 100,
-                    "shippedQuantity": 0,
-                    "invoicedQuantity": 0
-                }
-            ]
+            "@odata.etag": "W/\"JzE5OzEzNDMxOTg1NjQ5MTU5NjM2NDExOzAwOyc=\"",
+            "id": "e5245414-4ec8-f111-a056-002248373d44",
+            "documentId": "101026",
+            "sequence": 10000,
+            "lineType": "Item",
+            "lineObjectNumber": "1920-S",
+            "description": "ANTWERP Conference Table",
+            "description2": "",
+            "unitOfMeasureCode": "PCS",
+            "locationCode": "ALMACEN 2",
+            "quantity": 10,
+            "shippedQuantity": 10,
+            "invoicedQuantity": 0
         }
     ]
 }
@@ -1883,15 +1908,11 @@ Authorization: Bearer {access_token}
 | **@odata.context** | String (URL) | La URL que define el esquema y el origen de los datos. |
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
-| number | Text[20] | Es el código de pedido de venta. |
-| orderDate | Date | Fecha de emisión del documento. |
-| postingDate | Date | Fecha contable del registro. |
-| customerNumber | Text[20] | Código del cliente. |
-| customerName | Text[100] | Nombre o razón social del cliente. |
-| currencyCode | Text[10] | Código ISO de la moneda. |
-| priceIncludeTax | Boolean | precios incluyen impuestos | 
-| status | Text[30] | Estado del documento | 
-| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+| documentNo | Text[20] | Código del número de pedido de venta. |
+| locationCode | Text[20] | Código del almacén. |
+| systemCreatedAt | DateTime | Sello de tiempo de la creación del registro. |
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
+
 
 **Campos de la respuesta (Lineas)**
 
@@ -1912,7 +1933,30 @@ Authorization: Bearer {access_token}
 
 ## Consumo Pedidos Devoluciones de Venta
 
-### Obtener lista de Pedidos Devoluciones de Venta
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "/virtualOfficeGroup/vog/v1.0/companies({{companyId}})/salesReturnOrders",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de pedidos dev. venta se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+**Obtener lista de Pedidos Devoluciones de Venta**
 
 **Consumir Endpoints**
 
@@ -1929,23 +1973,24 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.etag": "W/\"JzIwOzE2NzU5MTI1NzE2MTQzMjk1Mzc5MTswMDsn\"",
-    "id": "2208fd50-9886-f111-8072-7ced8db0e8e8",
-    "documentNo": "1001",
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesReturnOrders/$entity",
+    "@odata.etag": "W/\"JzIwOzE1OTI4MTUzNTkwMjQ1Mjc5ODU1MTswMDsn\"",
+    "id": "8591d51f-9cc8-f111-a056-002248d2c55e",
+    "documentNo": "1005",
     "locationCode": "ALMACEN 2",
-    "systemModifiedAt": "2026-07-23T13:13:41.187Z",
+    "systemModifiedAt": "2026-10-15T13:27:11.137Z",
     "salesReturnOrderLines": [
         {
-            "@odata.etag": "W/\"JzE5OzMwNjU3NjYzNTI0OTY0NTc3NjMxOzAwOyc=\"",
-            "id": "ff24dcf5-c860-ef11-a672-000d3ac04166",
-            "documentId": "1001",
+            "@odata.etag": "W/\"JzIwOzE2MzM3MzkxOTQyNDI4NDU5NzYzMTswMDsn\"",
+            "id": "259b2714-9cc8-f111-a056-002248d2c55e",
+            "documentId": "1005",
             "sequence": 10000,
             "lineType": "Item",
-            "lineObjectNumber": "1936-S",
-            "description": "BERLIN Guest Chair, yellow",
+            "lineObjectNumber": "1002",
+            "description": "CDM POLLO",
             "description2": "",
-            "unitOfMeasureCode": "PCS",
-            "locationCode": "",
+            "unitOfMeasureCode": "KG",
+            "locationCode": "ALMACEN 2",
             "quantity": 10,
             "shippedQuantity": 0,
             "invoicedQuantity": 0
@@ -1963,7 +2008,7 @@ Authorization: Bearer {access_token}
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
 | documentNo | Text[20] | Código del número de pedido de devolución | 
 | locationCode | Text[20] | Código del almacén | 
-| lastModifiedDateTime | DateTime | Sello de tiempo de la última edición. |
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
 
 **Campos de la respuesta (Lineas)**
 
@@ -2069,22 +2114,30 @@ El maestro de artículos contiene toda la información relacionada con los produ
 
 ```json
 POST
-https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environmentName}/api/v2.0/subscriptions
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 Content-Type: application/json
 Authorization: Bearer {access_token}
 body
 {
   "notificationUrl": "%UrlNotificationId%",
-  "resource": "/api/v2.0/companies({{companyId}})/Items",
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/items",
   "clientState": ""
 }
 ```
+
+<Aside type="caution">
+La suscripción de articulos se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
 
 **Endpoint para Listado de Articulos (Sincronización Manual)**
 
 ```json
 GET
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/v2.0/companies({{companyId}})/items
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/items
 Content-Type: application/json 
 Authorization: Bearer {access_token}
 ```
@@ -2093,35 +2146,32 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/TEST/api/v2.0/$metadata#companies(41cc1c74-5021-f011-9af7-000d3ac04986)/items",
-    "value": [
-        {
-            "@odata.etag": "W/\"JzE5OzE3Mzg5MzEwMDE1NjQyNjE0OTExOzAwOyc=\"",
-            "id": "1ea0551c-7378-f011-8eef-002248de9fb5",
-            "number": "ALQUILER",
-            "displayName": "Alquiler de inmueble",
-            "displayName2": "",
-            "type": "Service",
-            "itemCategoryId": "00000000-0000-0000-0000-000000000000",
-            "itemCategoryCode": "",
-            "blocked": false,
-            "gtin": "",
-            "inventory": 0,
-            "unitPrice": 0,
-            "priceIncludesTax": false,
-            "unitCost": 0,
-            "taxGroupId": "00000000-0000-0000-0000-000000000000",
-            "taxGroupCode": "",
-            "baseUnitOfMeasureId": "5bcfdbef-5021-f011-9af7-002248dfda48",
-            "baseUnitOfMeasureCode": "UND",
-            "generalProductPostingGroupId": "6dcfdbef-5021-f011-9af7-002248dfda48",
-            "generalProductPostingGroupCode": "SERVICIOS",
-            "inventoryPostingGroupId": "00000000-0000-0000-0000-000000000000",
-            "inventoryPostingGroupCode": "",
-            "lastModifiedDateTime": "2025-08-13T18:28:16.41Z"
-        }
- ]}
-```
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/items/$entity",
+    "@odata.etag": "W/\"JzE5OzgyODExMDYyOTE4NTMxMDczOTgxOzAwOyc=\"",
+    "id": "b9fe5182-c860-ef11-a672-000d3ac04166",
+    "number": "1896-S",
+    "displayName": "ATHENS Desk",
+    "displayName2": "",
+    "type": "Inventory",
+    "itemCategoryId": "7d24458e-c860-ef11-a672-000d3ac04166",
+    "itemCategoryCode": "DESK",
+    "blocked": false,
+    "gtin": "",
+    "inventory": 10,
+    "unitPrice": 649.4,
+    "priceIncludesTax": false,
+    "unitCost": 506.6,
+    "taxGroupId": "00000000-0000-0000-0000-000000000000",
+    "taxGroupCode": "",
+    "baseUnitOfMeasureId": "2dff5182-c860-ef11-a672-000d3ac04166",
+    "baseUnitOfMeasureCode": "PCS",
+    "generalProductPostingGroupId": "5fd24c88-c860-ef11-a672-000d3ac04166",
+    "generalProductPostingGroupCode": "RETAIL",
+    "inventoryPostingGroupId": "1aff5182-c860-ef11-a672-000d3ac04166",
+    "inventoryPostingGroupCode": "RESALE",
+    "itemTrackingCode": "",
+    "lastModifiedDateTime": "2025-02-14T20:22:08.583Z"
+}
 
 **Campos de la respuesta**
 
@@ -2150,6 +2200,7 @@ Authorization: Bearer {access_token}
 | generalProductPostingGroupCode | Text[20] | Determina las cuentas de ingresos y gastos en el Libro Mayor. |
 | inventoryPostingGroupId | Guid | ID del grupo de registro de inventario. |
 | inventoryPostingGroupCode | Text[20] | Determina la cuenta de activos (Inventario) en el balance. |
+| itemTrackingCode | Text[20] | Código que define el seguimiento de lotes o series del producto. |
 | lastModifiedDateTime | Datetime | Marca de tiempo (UTC) de la última modificación del registro. |
 
 
