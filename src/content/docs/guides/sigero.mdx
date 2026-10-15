@@ -1680,28 +1680,32 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.etag": "W/\"JzIwOzE3NTc3MDU2MzU1NDI0MDgwMDU3MTswMDsn\"",
-    "id": "4635d57c-171e-f111-8405-7ced8da8a20f",
-    "documentNo": "1006",
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/outboundTransfers/$entity",
+    "@odata.etag": "W/\"JzE5Ozg4NjAyNDE5NzEwMzgxMDQ2ODAxOzAwOyc=\"",
+    "id": "b9f27ed5-9ec8-f111-a056-002248d2c55e",
+    "documentNo": "1103",
     "locationCode": "ALMACEN 1",
-    "lastModifiedDateTime": "2026-07-23T13:04:36.757Z",
+    "destinationCode": "ALMACEN 2",
+    "lastModifiedDateTime": "2026-10-15T13:46:36.977Z",
     "outboundTransferLines": [
         {
-            "@odata.etag": "W/\"JzE5OzYxMTAyMTk0Mzg4NjUwMzk4MTMxOzAwOyc=\"",
-            "id": "8750226e-171e-f111-8405-7ced8da8a20f",
-            "documentNo": 10000,
-            "locationCode": "MPPA01090",
+            "@odata.etag": "W/\"JzE4OzExNzUxMTg4NjMwNTAwNjY4MDE7MDA7Jw==\"",
+            "id": "91a322bb-9ec8-f111-a056-002248d2c55e",
+            "documentId": "1103",
+            "sequence": 10000,
+            "locationCode": "1001",
             "variantCode": "",
-            "description": "Alimento para Pollos",
-            "quantity": 100,
+            "description": "SAL",
+            "quantity": 10,
             "netWeight": 0,
-            "quantityReceived": 50,
-            "quantityOutstanding": 50,
-            "quantityShipped": 50,
-            "lastModifiedDateTime": "2026-07-23T13:04:36.587Z"
+            "tareWeight": 0,
+            "quantityReceived": 0,
+            "quantityOutstanding": 0,
+            "quantityShipped": 10,
+            "lastModifiedDateTime": "2026-10-15T13:47:42.5Z"
         }
     ]
-},
+}
 ```
 
 **Campos de la respuesta (Encabezado)**
@@ -1712,6 +1716,7 @@ Authorization: Bearer {access_token}
 | id | GUID | Identificador único universal del registro. |
 | documentNo | Text[20] | Número del documento de transferencia entrante. |
 | locationCode | Text[20] | Código del almacén. |
+| destinationCode | Text[20] | Código del almacén de destino. |
 | lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
 
 **Campos de la respuesta (Líneas)**
@@ -1771,34 +1776,32 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/outboundTransfers",
-    "value": [
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/purchaseOrders/$entity",
+    "@odata.etag": "W/\"JzIwOzE1MTg0NDMzNTQ3OTcxNzQ2NzI4MTswMDsn\"",
+    "id": "84bc7f11-99c8-f111-a056-002248d2c55e",
+    "documentNo": "106038",
+    "locationCode": "ALMACEN 2",
+    "lastModifiedDateTime": "2026-10-15T13:05:24.247Z",
+    "purchaseOrderLines": [
         {
-            "@odata.etag": "W/\"JzE5Ozg4NjAyNDE5NzEwMzgxMDQ2ODAxOzAwOyc=\"",
-            "id": "b9f27ed5-9ec8-f111-a056-002248d2c55e",
-            "documentNo": "1103",
-            "locationCode": "ALMACEN 1",
-            "destinationCode": "ALMACEN 2",
-            "lastModifiedDateTime": "2026-10-15T13:46:36.977Z",
-            "outboundTransferLines": [
-                {
-                    "@odata.etag": "W/\"JzE4OzExNzUxMTg4NjMwNTAwNjY4MDE7MDA7Jw==\"",
-                    "id": "91a322bb-9ec8-f111-a056-002248d2c55e",
-                    "documentId": "1103",
-                    "sequence": 10000,
-                    "locationCode": "1001",
-                    "variantCode": "",
-                    "description": "SAL",
-                    "quantity": 10,
-                    "netWeight": 0,
-                    "tareWeight": 0,
-                    "quantityReceived": 0,
-                    "quantityOutstanding": 0,
-                    "quantityShipped": 10,
-                    "lastModifiedDateTime": "2026-10-15T13:47:42.5Z"
-                }
-            ]
-        },
+            "@odata.etag": "W/\"JzIwOzE1ODMyNjg3MDYzMTU2MjEwMTEwMTswMDsn\"",
+            "id": "0e98680a-99c8-f111-a056-002248d2c55e",
+            "documentId": "106038",
+            "sequence": 10000,
+            "lineType": "Item",
+            "lineObjectNumber": "1002",
+            "description": "CDM POLLO",
+            "description2": "",
+            "unitOfMeasureCode": "KG",
+            "locationCode": "ALMACEN 2",
+            "quantity": 100,
+            "directUnitCost": 108.706,
+            "receivedQuantity": 0,
+            "invoicedQuantity": 0,
+            "invoiceQuantity": 0,
+            "receiveQuantity": 0
+        }
+    ]
 }
 ```
 
@@ -1810,7 +1813,6 @@ Authorization: Bearer {access_token}
 | id | GUID | Identificador único universal del registro. |
 | documentNo | Text[20] | Número del documento de compra. |
 | locationCode | Text[20] | Código del almacén. |
-| destinationCode | Text[20] | Código del almacén de destino. |
 | lastModifiedDateTime | DateTime | Fecha y hora de la última modificación del registro. |
 
 **Campos de la respuesta (Lineas)**
