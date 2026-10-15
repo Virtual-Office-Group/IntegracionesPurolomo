@@ -31,7 +31,6 @@ Para facilitar la integración y las pruebas de los webhooks de Business Central
             "itemNoExt": "PTCM10",
             "unitMeasureCode": "KG",
             "quantity": 10,
-            "finishedQuantity": 10,
             "productionOrderComponents":[
                 {
                     "itemNoExt":"MP003",
@@ -63,7 +62,6 @@ Para facilitar la integración y las pruebas de los webhooks de Business Central
 | itemNoExt | Text[255] | Código del artículo externo | 
 | unitMeasureCode | Text[255] | Código de la unidad de medida |
 | quantity | Decimal | Cantidad del artículo | 
-| finishedQuantity | Decimal | Cantidad finalizada |
 
 #### Componentes 
 
@@ -102,7 +100,6 @@ body
             "itemNoExt": "PTCM10",
             "unitMeasureCode": "UND",
             "quantity": 10,
-            "finishedQuantity": 10,
             "productionOrderComponents":[
                 {
                     "itemNoExt":"mp003",
@@ -140,7 +137,6 @@ body
             "description": "Pollo Beneficiado Grado A Embolsado F",
             "unitMeasureCode": "KG",
             "quantity": 10,
-            "finishedQuantity": 10,
             "systemModifiedAt": "2026-07-24T21:23:39.17Z",
             "productionOrderComponents":[
                 {
@@ -176,7 +172,14 @@ body
 | @odata.etag | String | Un identificador de versión del registro (concurrencia). |
 | id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
 | productionOrderNo | Text[20] | Código de la orden de producción. |
-| 
+| lineNo | Integer | Número de línea. |
+| itemNoExt | Text[20] | Código externo del artículo. |
+| itemNo | Text[20] | Código del artículo. |
+| description | Text[100] | Descripción del artículo. |
+| unitMeasureCode | Text[10] | Código de unidad de medida. |
+| quantity | Decimal(18,2) | Cantidad del artículo. |
+| systemModifiedAt | DateTime | Fecha de modificación del registro. |
+| productionOrderComponents | Array | Lista de componentes de la orden de producción. |
 
 ### Creación de tickets de producción (PBA)
 
