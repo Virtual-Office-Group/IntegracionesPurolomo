@@ -207,7 +207,6 @@ Las ordenes de produccion provienen de una produccion ABA, y se registrar como r
             "description": "Pollo Beneficiado Grado A Embolsado F",
             "unitMeasureCode": "KG",
             "quantity": 10,
-            "finishedQuantity": 10,
             "systemModifiedAt": "2026-07-24T21:23:39.17Z"
         }
     ]
@@ -242,7 +241,6 @@ Las ordenes de produccion provienen de una produccion ABA, y se registrar como r
 | description | Text[100] | Descripción del artículo. |
 | unitMeasureCode | Text[10] | Código de unidad de medida. |
 | quantity | Decimal(18,2) | Cantidad del artículo. |
-| finishedQuantity | Decimal(18,2) | Cantidad terminada del artículo. |
 | systemModifiedAt | DateTime | Fecha de modificación del registro. |
 
 # Consumo de maestros de datos
@@ -285,7 +283,6 @@ Authorization: Bearer {access_token}
             "unitMeasureCode": "UND",
             "quantity": 100,
             "remainingQuantity": 100,
-            "finishedQuantity": 0,
             "systemModifiedAt": "2026-06-30T14:33:24.58Z"
         }
     ]
@@ -320,5 +317,4 @@ Authorization: Bearer {access_token}
 | unitMeasureCode | Text[10] | Código de la unidad de medida del artículo. |
 | quantity | Decimal | Cantidad solicitada del artículo. |
 | remainingQuantity | Decimal | Cantidad restante del artículo. |
-| finishedQuantity | Decimal | Cantidad finalizada del artículo. |
 | systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
