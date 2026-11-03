@@ -707,23 +707,22 @@ El parámetro "changeType" indica el tipo de cambio:
 
 #### Tipos de movimiento
 
- 1) **Transferencia**
- 2) **Recepción de compra**
- 3) **Transferencia entrante**
- 4) **Despacho de venta**
- 5) **Transferencia intercompañia**
+1) **Transferencia**
+2) **Recepción de compra**
+3) **Transferencia entrante**
+4) **Despacho de venta**
+5) **Transferencia intercompañia**
 6) **Entrada - Préstamo recibidos**
 7) **Salida - Préstamo recibidos**
- 8)  **Devolución de ventas**
- 9) **Recibo de producción**
- 10) **Registro de merma**
+8)  **Devolución de ventas**
+9) **Registro de merma**
 
 
 Para la integración de tickets, se dividirán los procesos por tipo de movimiento; para cada uno se tendrá un endpoint específico que será consumido por el sistema externo.
 
 Los tipos de movimiento son los siguientes:
 
--  [Transferencia de inventario/ en transito](#transferencias-simples--en-transito)
+-  [Transferencia salientes](#transferencias-simples--en-transito)
  - [Recepción de compra](#recepcion-de-compra)
  - [Transferencia entrante](#transferencia-entrante)
  - [Despacho de venta](#despacho-de-venta)
@@ -733,13 +732,12 @@ Los tipos de movimiento son los siguientes:
 - [Entrada - Préstamo otorgados](#entrada---prestamo-otorgados)
 - [Salida - Préstamo otorgados](#salida---prestamo-otorgados)
  - [Devolución de ventas](#devolucion-de-ventas)
- - [Recibo de producción](#recibo-de-produccion)
  - [Registro de merma](#registro-de-merma)
 
 
-### Transferencias Simples / En tránsito
+### Transferencias Salientes 
 
-Las transferencias simples o en tránsito son aquellas que se realizan entre almacenes de la misma compañía, sin involucrar a terceros. Este tipo de movimiento permite trasladar inventario de un lugar a otro dentro de la misma organización.
+Las transferencias salientes son aquellas que se realizan entre almacenes de la misma compañía, sin involucrar a terceros. Este tipo de movimiento permite trasladar inventario de un lugar de origen a otro dentro de la misma organización.
 
 #### Campos requeridos
 
@@ -749,8 +747,7 @@ Las transferencias simples o en tránsito son aquellas que se realizan entre alm
 | :--- | :--- | :--- |
 | type | Integer | Tipo de movimiento. Debe ser 1 para transferencias simples.
 | code | Text[255] | Código único del ticket. |
-| locationCode | Text[20] | Código del almacén de origen. |
-| destinationLocation | Text[20] | Código del almacén de destino. (opcional) |
+| DocumentNo | Text[20] | Número del documento de pedidos de transferencia asociado. |
 | shippingAgentCode | Text[10]  | Código del transportista |
 | shippingVehicleCode | Text[15] | Código del vehículo de transporte |
 | originalDatetime | DateTime | Fecha y hora original del ticket. (opcional) |
@@ -759,6 +756,7 @@ Las transferencias simples o en tránsito son aquellas que se realizan entre alm
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento de pedidos de transferencia|
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
@@ -766,6 +764,14 @@ Las transferencias simples o en tránsito son aquellas que se realizan entre alm
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | newWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+#### lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. |
 
 ###### 
 
@@ -786,21 +792,29 @@ body
 {
     "type": 1,
     "code": "223232E3",
-    "locationCode":"ALMACEN 1",
-    "destinationLocation": "",
+    "DocumentNo": "C-PDA0000258",
     "shippingAgentCode": "CDGD",
     "shippingVehicleCode": "",
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
@@ -832,6 +846,7 @@ las recepciones de compra son los movimientos de inventario que se generan al re
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento de compra. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
@@ -871,6 +886,7 @@ body
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
@@ -887,6 +903,7 @@ body
             ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
@@ -928,12 +945,21 @@ las transferencias entrantes son movimientos de inventario que se producen cuand
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento de transferencia. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+#### lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. |
 
 #### Creación de ticket
 
@@ -953,20 +979,33 @@ body
     "type": 3,
     "code": "223232E3",
     "DocumentNo": "1006",
-    "locationCode":"ALMACEN 1",
     "shippingAgentCode": "CDGD",
     "shippingVehicleCode": "DR4356",
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                },
+                {
+                    "code": "gdgdgdgdsd",
+                    "quantity": 2,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
@@ -1000,6 +1039,7 @@ El despacho de venta es el proceso mediante el cual los productos se envían des
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
@@ -1041,6 +1081,7 @@ body
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
@@ -1062,6 +1103,7 @@ body
             ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
@@ -1306,8 +1348,7 @@ La entrada - préstamo otorgados son movimientos de inventario que se generan cu
 | :--- | :--- | :--- |
 | type | Integer | Tipo de movimiento. |
 | code | Text[255] | Código único del ticket. |
-| locationCode | Text[20] | Código del almacén de origen. |
-| destinationLocation | Text[20] | Código del almacén de destino. |
+| DocumentNo | Text[20] | Número del documento de pedidos de transferencia asociado. |
 | shippingAgentCode | Text[10]  | Código del transportista. |
 | shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
 | OriginalDatetime | Date | Fecha y hora original del ticket. |
@@ -1316,12 +1357,21 @@ La entrada - préstamo otorgados son movimientos de inventario que se generan cu
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento de pedidos de transferencia. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+##### Lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. (opcional) |
 
 #### Creación de ticket
 
@@ -1340,28 +1390,42 @@ body
 {
     "type": 1,
     "code": "223232E3",
-    "locationCode":"ALMACEN PTO",
-    "destinationLocation": "ALMACEN 1",
+    "DocumentNo": "C-PDA0000258",
     "shippingAgentCode": "CDGD",
     "shippingVehicleCode": "",
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
             "netWeight": 56.9,
-            "tareWeight": 0
-
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         }
     ]
 }
@@ -1379,8 +1443,7 @@ La Salida - préstamo otorgados son movimientos de inventario que se generan cua
 | :--- | :--- | :--- |
 | type | Integer | Tipo de movimiento. |
 | code | Text[255] | Código único del ticket. |
-| locationCode | Text[20] | Código del almacén de origen. |
-| destinationLocation | Text[20] | Código del almacén de destino. |
+| DocumentNo | Text[20] | Número del documento de pedidos de transferencia asociado. |
 | shippingAgentCode | Text[10]  | Código del transportista. |
 | shippingVehicleCode | Text[15] | Código del vehículo de transporte. |
 | OriginalDatetime | Date | Fecha y hora original del ticket. |
@@ -1389,7 +1452,7 @@ La Salida - préstamo otorgados son movimientos de inventario que se generan cua
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-| type | Integer | Tipo de movimiento. |
+| sourceLineNo | integer | Número de línea de origen del documento de pedidos de transferencia. |
 | code | Text[255] | Código único del ticket. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
@@ -1397,6 +1460,14 @@ La Salida - préstamo otorgados son movimientos de inventario que se generan cua
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
+
+##### Lote
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| code | Text[20] | Código del lote del artículo. |
+| quantity | Decimal | Cantidad de artículos en el lote. |
+| ExpirationDate | Date | Fecha de vencimiento del lote. (opcional) |
 
 #### Creación de ticket
 
@@ -1415,27 +1486,42 @@ body
 {
     "type": 1,
     "code": "223232E3",
-    "locationCode":"ALMACEN 1",
-    "destinationLocation": "ALMACEN PTO",
+    "DocumentNo": "C-PDA0000258",
     "shippingAgentCode": "CDGD",
     "shippingVehicleCode": "",
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
             "quantity": 1,
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "quantity": 1,
             "reasonCode": "PRUEBA",
             "netWeight": 56.9,
-            "tareWeight": 0
+            "tareWeight": 0,
+            "ticketLinelots":[
+                {
+                    "code": "gdgdgdg",
+                    "quantity": 1,
+                    "ExpirationDate": "2026-07-17"
+                }
+            ]
         }
     ]
 }
@@ -1460,6 +1546,7 @@ La devolución de ventas es el proceso mediante el cual los productos vendidos s
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
+| sourceLineNo | integer | Número de línea de origen del documento. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
@@ -1489,6 +1576,7 @@ body
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
+            "sourceLineNo": 10000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "reasonCode": "PRUEBA",
@@ -1498,77 +1586,12 @@ body
             "tareWeight": 0
         },
         {
+            "sourceLineNo": 20000,
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
             "quantity": 1,
             "reasonCode": "PRUEBA",
-            "netWeight": 56.9,
-            "tareWeight": 0
-        }
-    ]
-}
-```
-
-### Recibo de producción
-
-El recibo de producción es el proceso mediante el cual los productos fabricados o ensamblados se registran como entrada de inventario de productos terminados en el sistema. Este movimiento asegura que el inventario refleje correctamente la cantidad de productos terminados en las órdenes de producción.
-
-#### Campos requeridos
-
-#### Encabezado
-
-| Campo | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| type | Integer | Tipo de movimiento. |
-| code | Text[255] | Código único del ticket. |
-| documentNo | Text[20] | Número del documento de producción asociado. |
-| locationCode | Text[20] | Código del almacén de origen. |
-| OriginalDatetime | Date | Fecha y hora original del ticket. |
-
-
-##### Lineas
-
-| Campo | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| itemNo | Text[20] | Número de artículo. |
-| unitMeasure | Text[10] | Unidad de medida del artículo. |
-| quantity | Decimal | Cantidad de artículos en la línea. |
-| netWeight | Decimal | Peso neto de los artículos en la línea. |
-| tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
-
-#### Creación de ticket
-
-```json
-POST
-https://devnamespacevog.servicebus.windows.net
-Header{
-  Content-Type: application/json
-  Authorization: Bearer {SharedAccessSignature}
-  companyID: {companyID} // Id de la compañía en Business Central
-  environment: {environment} // Nombre del ambiente en Business Central
-  operationType: "POST" // Tipo de operacion
-  requestId: {requestId} // Id de mensaje
-}
-body
-{
-    "type": 9,
-    "code": "223232E3",
-    "documentNo": "1006",
-    "locationCode":"ALMACEN 1",
-    "originalDatetime": "2026-07-17T14:20:00Z",
-    "ticketsLines":[
-        {
-            "itemNo": "1000",
-            "unitMeasure":"PCS",
-            "quantity": 1,
-            "netWeight": 56.9,
-            "tareWeight": 0
-        },
-        {
-            "itemNo": "1000",
-            "unitMeasure":"PCS",
-            "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0
         }
@@ -1640,7 +1663,7 @@ body
 }
 ```
 
-## Consumo Transferencias Entrantes
+## Consumo de pedidos de transferencia 
 
 **Suscripción del recurso por webhook**
 
@@ -2754,6 +2777,11 @@ El maestro de código motivo contiene toda la información relacionada con el li
 
 
 ```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
 {
   "notificationUrl": "UrlNotificationId",
   "resource": "/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/reasonCodes",
@@ -2761,24 +2789,25 @@ El maestro de código motivo contiene toda la información relacionada con el li
 }
 ```
 
-**Endpoint para Listado (Sincronización Manual)**
-
-GET 
-
-```json
-https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
-```
-
-Content-Type: application/json 
-Authorization: Bearer &#123;access_token&#125;
-
 <Aside type="caution">
-La suscripción de código de motivo se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+La suscripción de codigo de motivo se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
 
-```text
+```text 
 POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
 ```
 </Aside>
+
+
+
+**Endpoint para Listado (Sincronización Manual)**
+
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/ODataV4/Company('{{companyId}}')/ReasonCodes
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
 
  **Datos obtenidos**
 
@@ -2819,3 +2848,91 @@ POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentN
 | inTransit | Boolean | Si está activo para transferencia en tránsito |
 | systemCreatedAt | Datetime | Marca de tiempo (UTC) de la fecha en que se registró el código de motivo |
 | systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+
+### Maestro de Lotes
+
+El maestro de lote contiene toda la información relacionada con los lotes de artículos registrados en la empresa.
+
+**Suscripción del recurso por webhook**
+
+
+```json
+POST 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "UrlNotificationId", 
+  "resource": "virtualOfficeGroup/integration/v1.0/lotStocks",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de lotes se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+**Endpoint para Listado (Sincronización Manual)**
+
+GET 
+
+```json
+GET
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/lotStocks
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+ **Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/lotStocks",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzIwOzE3OTgzNzQ1MzU3NTg2MDI3NzIxMTswMDsn\"",
+            "id": "05de4949-6cb3-f111-aaa8-6045bd3b09a1",
+            "entryNo": 899,
+            "itemNo": "1016",
+            "variantCode": "",
+            "locationCode": "ALMACEN 2",
+            "lotNo": "GDGDGDG",
+            "expirationDate": "2026-10-17",
+            "initialQuantity": 5,
+            "remainingQuantity": 5,
+            "postingDate": "2026-08-16",
+            "open": true,
+            "systemCreatedAt": "2026-09-18T14:21:55.447Z",
+            "systemModifiedAt": "2026-10-22T15:43:46.79Z"
+        },
+    ]
+}
+```
+
+**Campos de la respuesta**
+
+| Nombre | Tipo de dato | Descripción |
+|---|---|---|
+| @odata.context |  | La URL que define el esquema y el origen de los datos |
+| @odata.etag |  | Un identificador de versión del registro. |
+| id | Guid | ID del recurso. |
+| entryNo | Integer | Número de entrada del lote. |
+| itemNo | Text[20] | Código del artículo asociado al lote. |
+| variantCode | Text[10] | Código de variante del artículo (si aplica). |
+| locationCode | Text[10] | Código del almacén o ubicación donde se encuentra el lote. |
+| lotNo | Text[20] | Número de lote asignado al artículo. |
+| expirationDate | Date | Fecha de vencimiento del lote (si aplica). |
+| initialQuantity | Decimal | Cantidad inicial del lote al momento de su creación. |
+| remainingQuantity | Decimal | Cantidad restante del lote disponible en inventario. |
+| postingDate | Date | Fecha de registro del lote en el sistema. |
+| open | Boolean | Indica si el lote está abierto (true) o cerrado (false). |
+| systemCreatedAt | Datetime | Marca de tiempo (UTC) de la fecha en que se registró el lote. |
+| systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+
