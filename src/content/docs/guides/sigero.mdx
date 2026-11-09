@@ -2054,6 +2054,29 @@ Authorization: Bearer {access_token}
 
 ## Consumo de órdenes de producción
 
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/prodOrders",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de articulos se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
 ### Obtener lista de órdenes de producción
 
 **Consumir Endpoints**
@@ -2070,31 +2093,66 @@ Authorization: Bearer {access_token}
 
 ```json
 {
-    "@odata.etag": "W/\"JzE5OzM3MDAwNDA0MTM0NjI1MDI1NjAxOzAwOyc=\"",
-    "id": "0f5b4ba5-9074-f111-8070-002248360983",
+   "@odata.etag": "W/\"JzE5Ozc0NjI1NDM5OTQxMjE5NzYzMzUxOzAwOyc=\"",
+    "id": "8a6b2387-d5d0-f111-a436-002248dea9e0",
     "status": "Released",
-    "code": "F-OPL0237",
+    "code": "F-OPL0266",
     "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
     "description2": "",
     "sourceType": "Item",
     "sourceNo": "PTCM10021",
-    "dueDate": "2026-07-01",
-    "systemModifiedAt": "2026-06-30T14:33:25.2Z",
+    "dueDate": "2026-08-16",
+    "type": "GLOBAL",
+    "location": "Santa Teresa",
+    "systemModifiedAt": "2026-11-08T17:27:23.47Z",
     "prodOrderLines": [
         {
-            "@odata.etag": "W/\"JzIwOzEzMDkzODA3OTgyNTU5MTYzMzE4MTswMDsn\"",
-            "id": "105b4ba5-9074-f111-8070-002248360983",
+            "@odata.etag": "W/\"JzE5OzE2MTg5NjM0OTI2NzQ0NTM5NzMxOzAwOyc=\"",
+            "id": "6add458d-d5d0-f111-a436-002248dea9e0",
             "lineNo": 10000,
-            "itemNo": "PTCM10021",
+            "itermNo": "PTCM10021",
             "description": "Pechuga de Pollo Punta de Monte 1Und * 800gr",
             "description2": "",
             "unitMeasureCode": "UND",
             "quantity": 100,
             "remainingQuantity": 100,
             "finishedQuantity": 0,
-            "systemModifiedAt": "2026-06-30T14:33:24.58Z"
+            "systemModifiedAt": "2026-10-26T00:39:00.323Z",
+            "prodOrderComponents": [
+                {
+                    "@odata.etag": "W/\"JzE4OzI5NjIwNzUzMzIzMzgwNTI3MTE7MDA7Jw==\"",
+                    "id": "6ddd458d-d5d0-f111-a436-002248dea9e0",
+                    "status": "Released",
+                    "prodOrderNo": "F-OPL0266",
+                    "prodOrderLineNo": 10000,
+                    "lineNo": 10000,
+                    "itemNo": "MPCM1039",
+                    "description": "CDM de Pollo T1",
+                    "description2": "",
+                    "unitMeasureCode": "GR",
+                    "quantityPer": 0.04,
+                    "expectedQuantity": 4,
+                    "remainingQuantity": 4,
+                    "systemModifiedAt": "2026-10-26T00:38:30.39Z"
+                },
+                {
+                    "@odata.etag": "W/\"JzE4OzE0MTgxOTUwOTQ2NTkzODY0NzE7MDA7Jw==\"",
+                    "id": "6edd458d-d5d0-f111-a436-002248dea9e0",
+                    "status": "Released",
+                    "prodOrderNo": "F-OPL0266",
+                    "prodOrderLineNo": 10000,
+                    "lineNo": 20000,
+                    "itemNo": "MPCM1049",
+                    "description": "Sal con Yodo y Fluor T1",
+                    "description2": "",
+                    "unitMeasureCode": "KG",
+                    "quantityPer": 0.01,
+                    "expectedQuantity": 1,
+                    "remainingQuantity": 1,
+                    "systemModifiedAt": "2026-10-26T00:38:30.447Z"
+                }
+            ]
         }
-    ]
 }
 ```
 
@@ -2111,6 +2169,8 @@ Authorization: Bearer {access_token}
 | sourceType | Text[20] | Tipo de fuente de la orden de producción. |
 | sourceNo | Text[20] | Número de fuente de la orden de producción. |
 | dueDate | Date | Fecha límite de entrega de la orden. |
+| type | Text[20] | Tipo de orden de producción. |
+| location | Text[20] | Código de ubicacion donde se realiza la producción. |
 | systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
 
 **Campos de la respuesta (Lineas)**
@@ -2128,6 +2188,25 @@ Authorization: Bearer {access_token}
 | remainingQuantity | Decimal | Cantidad restante del artículo. |
 | finishedQuantity | Decimal | Cantidad finalizada del artículo. |
 | systemModifiedAt | DateTime | Sello de tiempo de la última edición. |
+
+**Campos de la respuesta (Componentes)**
+
+| Nombre | Tipo | Descripción |
+| :--- | :--- | :--- |
+| @odata.etag | String | Un identificador de versión del registro (concurrencia). |
+| id | Guid | El GUID (Identificador Único Global) interno de Business Central. |
+| status | Text[20] | Estado del componente de la orden de producción. |
+| prodOrderNo | Text[20] | Código de la orden de producción a la que pertenece el componente. |
+| prodOrderLineNo | Integer | Número de línea de la orden de producción a la que pertenece el componente. |
+| lineNo | Integer | Número de línea del componente dentro de la orden de producción. |
+| itemNo | Text[20] | Número de artículo del componente. |
+| description | Text[100] | Descripción del componente. |
+| description2 | Text[50] | Descripción secundaria del componente. |
+| unitMeasureCode | Text[10] | Código de la unidad de medida del componente. |
+| quantityPer | Decimal | Cantidad por unidad del componente. |
+| expectedQuantity | Decimal | Cantidad esperada del componente. |
+| remainingQuantity | Decimal | Cantidad restante del componente. |
+| systemModifiedAt | DateTime | Sello de tiempo de la última edición del componente. |
 
 ## Consumo de Maestros de Datos
 
