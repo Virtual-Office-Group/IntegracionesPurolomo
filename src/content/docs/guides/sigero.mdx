@@ -1603,6 +1603,15 @@ body
 
 El registro de merma es el proceso mediante el cual se documenta la pérdida de inventario debido a factores como deterioro, caducidad, daños o errores en el manejo de los productos. Este movimiento permite ajustar el inventario para reflejar con precisión la cantidad disponible de productos.
 
+#### Tipos de clasificación de merma
+
+| Clasificación | Descripción |
+| :--- | :--- |
+| 1 | Merma en transito |
+| 2 | Merma proceso logistico |
+| 3 | Merma en cava |
+
+
 #### Campos requeridos
 
 ##### Encabezado
@@ -1610,6 +1619,7 @@ El registro de merma es el proceso mediante el cual se documenta la pérdida de 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
 | type | Integer | Tipo de movimiento. |
+| Clasification | Integer | Clasificación del movimiento. |
 | code | Text[255] | Código único del ticket. |
 | OriginalDatetime | Date | Fecha y hora original del ticket. |
 
@@ -1641,6 +1651,7 @@ body
 {
     "type": 10,
     "code": "223232E3",
+    "clasification": 1,
     "originalDatetime": "2026-07-17T14:20:00Z",
     "ticketsLines":[
         {
@@ -1662,6 +1673,7 @@ body
     ]
 }
 ```
+
 
 ## Consumo de pedidos de transferencia 
 
