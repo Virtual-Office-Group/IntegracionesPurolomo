@@ -1218,10 +1218,6 @@ Las entrada - préstamo recibidos son movimientos de inventario que se generan c
 
 | Campo | Tipo de dato | Descripción |
 | :--- | :--- | :--- |
-
-
-
-
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | locationCode | Text[10] | Código de ubicación del artículo. |
@@ -1253,6 +1249,7 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
+            "documentNoFreight": "",
             "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0,
@@ -1263,6 +1260,7 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN PTO",
+            "documentNoFreight": "PC-001",
             "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0,
@@ -1293,6 +1291,7 @@ Las salida - préstamo recibidos son movimientos de inventario que se generan cu
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | locationCode | Text[10] | Código de ubicación del artículo. |
+| documentNoFreight | Text[20] | No. orden de compra de flete |
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
@@ -1321,6 +1320,7 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
+            "documentNoFreight": "",
             "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0,
@@ -1331,10 +1331,11 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN PTO",
+            "documentNoFreight": "PC-001",
             "quantity": 1,
             "netWeight": 56.9,
             "tareWeight": 0,
-            "totalCost": 0,
+            "totalCost": 0, 
         }
     ]
 }
@@ -1364,7 +1365,8 @@ La entrada - préstamo otorgados son movimientos de inventario que se generan cu
 | sourceLineNo | integer | Número de línea de origen del documento de pedidos de transferencia. |
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
-| reasonCode | Text[50] | Código de razón para el movimiento. (opcional) |
+| locationCode | Text[10] | Codigo de almacen |
+| documentNoFreight | Text[20] | No. orden de compra de flete |
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
