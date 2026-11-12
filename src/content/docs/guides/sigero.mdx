@@ -1144,6 +1144,7 @@ Las transferencias intercompañía son movimientos de inventario que se realizan
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | locationCode | Text[20] | Código del almacén de origen para la línea. |
+| documentNoFreight | Text[20] | No. orden de compra de flete |
 | destinationLocation | Text[20] | Código del almacén de destino para la línea. |
 | originCompany | Text[30] | Código de la compañía de origen para la línea. |
 | destinationCompany | Text[30] | Código de la compañía de destino para la línea. |
@@ -1175,6 +1176,7 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
+            "documentNoFreight": "",
             "DestinationLocation": "ALMACEN 2",
             "originCompany": "ALIB5",
             "DestinationCompany": "IDTE3",
@@ -1188,6 +1190,7 @@ body
             "itemNo": "1000",
             "unitMeasure":"PCS",
             "locationCode":"ALMACEN 1",
+            "documentNoFreight": "",
             "DestinationLocation": "ALMACEN 2",
             "originCompany": "ALIB5",
             "DestinationCompany": "IDTE3",
@@ -1221,6 +1224,7 @@ Las entrada - préstamo recibidos son movimientos de inventario que se generan c
 | itemNo | Text[20] | Número de artículo. |
 | unitMeasure | Text[10] | Unidad de medida del artículo. |
 | locationCode | Text[10] | Código de ubicación del artículo. |
+| documentNoFreight | Text[20] | No. orden de compra de flete |
 | quantity | Decimal | Cantidad de artículos en la línea. |
 | netWeight | Decimal | Peso neto de los artículos en la línea. |
 | tareWeight | Decimal | Peso tara de los artículos en la línea. (opcional) |
