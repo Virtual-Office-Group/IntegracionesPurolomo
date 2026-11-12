@@ -2,12 +2,20 @@
 title: 'Integraciones Sigero - Business Central'
 description: Guía para integraciones con el Sistema Sigero y Business Central.
 ---
-
+import { Image } from 'astro:assets';
 import { LinkCard } from '@astrojs/starlight/components';
 import { Code } from '@astrojs/starlight/components';
 import { Aside } from '@astrojs/starlight/components';
 
 import examplePython from '../../../assets/sigero/js/send_receive_bus.py';
+
+import qrTransferOrder from '../../../assets/sigero/qr/qrTransferencia.png';
+
+import qrOrderPurchase from '../../../assets/sigero/qr/qrPedidoCompra.png';
+
+import qrOrderSale from '../../../assets/sigero/qr/qrPedidoVenta.png';
+
+import qrSaleReturnOrder from '../../../assets/sigero/qr/qrPedidoDevVenta.png';
 
 ## Propuesta Técnica
 
@@ -3116,5 +3124,98 @@ Authorization: Bearer {access_token}
 | open | Boolean | Indica si el lote está abierto (true) o cerrado (false). |
 | systemCreatedAt | Datetime | Marca de tiempo (UTC) de la fecha en que se registró el lote. |
 | systemModifiedAt | Datetime | Marca de tiempo (UTC) de la última vez que se realizó un cambio en cualquier campo de este registro. |
+
+
+## Codigos QR
+
+El codigo QR permitira la lectura de los datos de los documentos de ventas y compras, para su posterior validación.
+
+El formato utilizado es el siguiente:
+
+### Pedidos de transferencia simples / en transito
+
+#### datos disponibles
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| documentType | integer | Tipo de documento |
+| id |Text[40] | identificador unico del registro en business central |
+| documentNo | Text[20] | Numero de documento |
+
+```json
+Texto
+{
+    "documentType": 1,
+    "id": "BED6AB95-97DE-F111-84E4-E4FADE038A15",
+    "documentNo": "1126"
+}
+```
+
+<img src={qrTransferOrder.src} alt="qr pedido de transferencia" />
+
+
+### Pedidos de compra
+
+#### datos disponibles
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| documentType | integer | Tipo de documento |
+| id |Text[40] | identificador unico del registro en business central |
+| documentNo | Text[20] | Numero de documento |
+
+```json
+Texto
+{
+    "documentType": 2,
+    "id": "DA147031-9DDE-F111-84E4-EAFADE038A15",
+    "documentNo": "106065"
+}
+```
+
+<img src={qrOrderPurchase.src} alt="qr pedido de compra" />
+
+### Pedidos de venta
+
+#### datos disponibles
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| documentType | integer | Tipo de documento |
+| id |Text[40] | identificador unico del registro en business central |
+| documentNo | Text[20] | Numero de documento |
+
+```json
+Texto
+{
+    "documentType": 4,
+    "id": "911315bc-0DDD-F111-84E4-002248E04A50",
+    "documentNo": "101032"
+}
+```
+<img src={qrOrderSale.src} alt="qr pedido de venta" />
+
+
+### Pedidos dev. venta
+
+#### datos disponibles
+
+| Campo | Tipo de dato | Descripción |
+| :--- | :--- | :--- |
+| documentType | integer | Tipo de documento |
+| id |Text[40] | identificador unico del registro en business central |
+| documentNo | Text[20] | Numero de documento |
+
+```json
+Texto
+{
+    "documentType": 8,
+    "id": "6991B2B6-47D2-F111-A436-002248DFDB3F",
+    "documentNo": "1007"
+}
+```
+
+<img src={qrSaleReturnOrder.src} alt="qr pedido de devolución de venta" />
+
 
 
