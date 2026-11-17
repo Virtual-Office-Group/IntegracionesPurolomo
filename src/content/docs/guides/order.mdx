@@ -1,0 +1,251 @@
+---
+title: 'Integraciones Pedidos de empleados'
+description: Guia para integraciones con el Sistema de pedidos de empleados y Business Central.
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
+
+
+Los pedidos de venta de empleados son una funcionalidad que permite a los empleados realizar pedidos de productos o servicios a través de un sistema integrado con Business Central. Esta guía proporciona información sobre cómo integrar y consumir los recursos relacionados con los pedidos de empleados, incluyendo la suscripción a webhooks, el consumo de listas de precios y la creación de pedidos.
+
+## Recursos para pruebas
+
+Para facilitar la integración y las pruebas de los webhooks de Business Central, está disponible un espacio de trabajo en Postman. Esto permite interactuar con la API sin necesidad de desarrollar código de cliente de manera inmediata.
+
+<LinkCard
+  title="Business Central (Integración Pedidos de empleados)"
+  href="https://documenter.getpostman.com/view/51769148/2sBYHbqvLG"
+  target={'_blank'}
+/>
+
+# Consumo de maestros de datos
+
+## Consumo lista de precios de ventas
+
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesPriceLists",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de lista de precios de venta se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+**Consumir endpoints**
+
+Para consultar manualmente las listas de precios de venta, puedes consumir el endpoint personalizado de Business Central.
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesPriceLists
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesPriceLists",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzIwOzEyOTk4Mjk1NTkyNzExMzQ0OTE4MTswMDsn\"",
+            "id": "92eaaef4-5828-f111-bec2-7ced8da8a20f",
+            "code": "J00001",
+            "description": "Lista de precios predeterminada.",
+            "status": "Active",
+            "priceType": "Sale",
+            "sourceNo": "",
+            "currencyCode": "",
+            "startingDate": "0001-01-01",
+            "endingDate": "0001-01-01",
+            "lastModifiedDateTime": "2026-03-25T14:43:16.717Z"
+        },
+    ]
+}
+```
+
+**Campos de la respuesta**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| @odata.etag | string | ETag de la lista de precios, utilizado para control de concurrencia. |
+| @odata.context | string | URL del contexto de OData para la lista de precios. |
+| id | string | Identificador único de la lista de precios. |
+| code | string | Código de la lista de precios. |
+| description | string | Descripción de la lista de precios. |
+| status | string | Estado de la lista de precios (por ejemplo, "Active"). |
+| priceType | string | Tipo de precio (por ejemplo, "Sale"). |
+| sourceNo | string | Número de fuente asociado a la lista de precios. |
+| currencyCode | string | Código de moneda asociado a la lista de precios. |
+| startingDate | string | Fecha de inicio de la validez de la lista de precios. |
+| endingDate | string | Fecha de finalización de la validez de la lista de precios. |
+| lastModifiedDateTime | string | Fecha y hora de la última modificación de la lista de precios. |
+
+
+## Consumo lineas de Precios de ventas
+
+**Suscripción del recurso por webhook**
+
+```json
+POST
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+Content-Type: application/json
+Authorization: Bearer {access_token}
+body
+{
+  "notificationUrl": "%UrlNotificationId%",
+  "resource": "virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesPriceLists",
+  "clientState": ""
+}
+```
+
+<Aside type="caution">
+La suscripción de lineas de la lista de precios de venta se gestiona a través de una API personalizada. Para realizar la solicitud de suscripción, se debe utilizar la siguiente estructura de URL en el endpoint:
+
+```text 
+POST > https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{environmentName}}/api/virtualOfficeGroup/integration/v1.0/subscriptions
+```
+</Aside>
+
+**Consumir endpoints**
+
+
+Para consultar manualmente las lineas de la lista de precios de venta, puedes consumir el endpoint personalizado de Business Central.
+```json
+GET 
+https://api.businesscentral.dynamics.com/v2.0/{{TenantID}}/{{enviromentName}}/api/virtualOfficeGroup/integration/v1.0/companies({{companyId}})/salesPriceListLines
+Content-Type: application/json
+Authorization: Bearer {access_token}
+```
+
+**Datos obtenidos**
+
+```json
+{
+    "@odata.context": "https://api.businesscentral.dynamics.com/v2.0/30eb258d-51a4-4f58-9c88-bf72d4d3325a/DEMO/api/virtualOfficeGroup/integration/v1.0/$metadata#companies(db22931c-25f2-f011-8405-000d3a88d306)/salesPriceListLines",
+    "value": [
+        {
+            "@odata.etag": "W/\"JzIwOzExNDQxODMxNDI2NzM4ODI4NzQ2MTswMDsn\"",
+            "id": "c4eeb4ea-76df-f111-84e4-6045bd3afd63",
+            "priceListCode": "S00003",
+            "lineNo": 10000,
+            "status": "Draft",
+            "assetType": "Item",
+            "assetNo": "1001",
+            "description": "Producto de prueba 1",
+            "variantCode": "",
+            "unitOfMeasureCode": "KG",
+            "minimumQuantity": 0,
+            "unitPrice": 45,
+            "lineDiscountPercent": 0,
+            "currencyCode": "",
+            "startingDate": "0001-01-01",
+            "endingDate": "0001-01-01",
+            "lastModifiedDateTime": "2026-11-13T15:28:47.223Z"
+        }
+    ]
+}
+```
+
+**Campos de la respuesta**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| @odata.etag | string | ETag de la línea de la lista de precios, utilizado para control de concurrencia. |
+| @odata.context | string | URL del contexto de OData para la línea de la lista de precios. |
+| id | string | Identificador único de la línea de la lista de precios. |
+| priceListCode | string | Código de la lista de precios a la que pertenece la línea. |
+| lineNo | integer | Número de línea dentro de la lista de precios. |
+| status | string | Estado de la línea de la lista de precios (por ejemplo, "Draft"). |
+| assetType | string | Tipo de activo asociado a la línea (por ejemplo, "Item"). |
+| assetNo | string | Número de activo asociado a la línea (por ejemplo, número de artículo). |
+| description | string | Descripción de la línea de la lista de precios. |
+| variantCode | string | Código de variante asociado a la línea, si aplica. |
+| unitOfMeasureCode | string | Código de unidad de medida para la línea (por ejemplo, "KG"). |
+| minimumQuantity | number | Cantidad mínima requerida para aplicar la línea de la lista de precios. |
+| unitPrice | number | Precio unitario de la línea de la lista de precios. |
+| lineDiscountPercent | number | Porcentaje de descuento aplicado a la línea de la lista de precios. |
+| currencyCode | string | Código de moneda asociado a la línea de la lista de precios. |
+| startingDate | string | Fecha de inicio de la validez de la línea de la lista de precios. |
+| endingDate | string | Fecha de finalización de la validez de la línea de la lista de precios. |
+| lastModifiedDateTime | string | Fecha y hora de la última modificación de la línea de la lista de precios. |
+
+## Creacion de pedidos de empleados
+
+para crear un pedido de empleado, se debe realizar una solicitud POST al endpoint correspondiente en Business Central. A continuación se muestra un ejemplo de cómo estructurar la solicitud:
+
+```json 
+POST
+https://devnamespacevog.servicebus.windows.net
+Header{
+  Content-Type: application/json
+  Authorization: Bearer {SharedAccessSignature}
+  companyID: {companyID}
+  environment: {environment}
+  operationType: "POST"
+  requestId: {requestId}
+}
+body
+{
+    "locationCode": "ALMACEN 1",
+    "customerNumber": "10000",
+    "orderDate": "2025-05-25",
+    "employeeSalesOrderLines": [
+        {
+            "itemNo": "1012",
+            "quantity": 45,
+            "unitPrice": 14,
+            "lineDiscountAmount": 1
+        },
+        {
+            "itemNo": "1013",
+            "quantity": 45,
+            "unitPrice": 14,
+            "lineDiscountAmount": 1
+        },
+        {
+            "itemNo": "1014",
+            "quantity": 45,
+            "unitPrice": 14,
+            "lineDiscountAmount": 1
+        }
+    ]
+}
+```
+
+#### Campos requeridos
+
+##### Encabezado
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| locationCode | string | Código de la ubicación desde donde se realiza el pedido. |
+| customerNumber | string | Número del cliente asociado al pedido. |
+| orderDate | string | Fecha en la que se realiza el pedido, en formato YYYY-MM-DD. |
+
+#### lineas
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| itemNo | string | Número del artículo que se está solicitando. |
+| quantity | number | Cantidad del artículo que se está solicitando. |
+| unitPrice | number | Precio unitario del artículo. |
+| lineDiscountAmount | number | Monto de descuento aplicado a la línea del pedido. |
+
+
+
